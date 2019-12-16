@@ -1,0 +1,51 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_aea9a/fast 
+/usr/bin/gmake -f CMakeFiles/cmTC_aea9a.dir/build.make CMakeFiles/cmTC_aea9a.dir/build
+gmake[1]: Entering directory '/home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_aea9a.dir/CheckSymbolExists.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_aea9a.dir/CheckSymbolExists.c.o   -c /home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_aea9a
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_aea9a.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_aea9a.dir/CheckSymbolExists.c.o  -o cmTC_aea9a 
+/usr/bin/ld: CMakeFiles/cmTC_aea9a.dir/CheckSymbolExists.c.o: in function `main':
+CheckSymbolExists.c:(.text+0x16): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [CMakeFiles/cmTC_aea9a.dir/build.make:87: cmTC_aea9a] Error 1
+gmake[1]: Leaving directory '/home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:121: cmTC_aea9a/fast] Error 2
+
+File /home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_df1f2/fast 
+/usr/bin/gmake -f CMakeFiles/cmTC_df1f2.dir/build.make CMakeFiles/cmTC_df1f2.dir/build
+gmake[1]: Entering directory '/home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_df1f2.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_df1f2.dir/CheckFunctionExists.c.o   -c /usr/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTC_df1f2
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_df1f2.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_df1f2.dir/CheckFunctionExists.c.o  -o cmTC_df1f2 -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [CMakeFiles/cmTC_df1f2.dir/build.make:87: cmTC_df1f2] Error 1
+gmake[1]: Leaving directory '/home/truman/Desktop/three-widget/OpenSceneGraph-Earth/build-gcc9-libc2.29/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:121: cmTC_df1f2/fast] Error 2
+
+

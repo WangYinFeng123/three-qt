@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CSNC>
+  <nodes>
+    <node oid_desc="" oid="" description="" name="polySurface1"/>
+    <node oid_desc="" oid="" description="" name="polySurface2"/>
+    <node oid_desc="" oid="" description="" name="headusOBJexport"/>
+  </nodes>
+</CSNC>

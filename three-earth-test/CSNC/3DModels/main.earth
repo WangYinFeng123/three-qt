@@ -1,0 +1,41 @@
+<!--?-->
+<map name="readymap.org" type="geocentric" version="2">
+ <options lighting="true">
+  <cache driver="filesystem" path="main.earth.cache"/>
+ </options>
+ <image name="卫星图" driver="xyz" url="http://mt2.google.cn/vt/lyrs=s@167000000&amp;hl=zh-CN&amp;gl=cn&amp;x={x}&amp;y={y}&amp;z={z}&amp;s=Galil"><profile>spherical-mercator</profile></image>
+ <image name="地标图" driver="xyz" url="http://mt2.google.cn/vt/lyrs=y@167000000&amp;hl=zh-CN&amp;gl=cn&amp;x={x}&amp;y={y}&amp;z={z}&amp;s=Galil"><profile>spherical-mercator</profile></image>
+ <elevation name="高程图" driver="tms" url="http://readymap.org/readymap/tiles/1.0.0/9/" tile_size="17"/>
+ <extensions>
+  <sky driver="simple" hours="4.6" ambient="0.05" atmospheric_lighting="true" exposure="3.0"/>
+  <annotations>
+   <model name="磐能全站" url="./main.earth.资源/red_flag.osg.(100,100,100).scale">
+    <position long="117.21095300021594" lat="25.146533757463526"/>
+   </model>
+<!--
+   <label text="磐能全站">
+    <position long="117.21095300021594" lat="25.146533757463526"/>
+   </label>
+-->
+  </annotations>
+ </extensions>
+ <json>
+ [
+  {"name":"地球","obliquePhotograpy":[],"threeDimensionalInspection":"","long":110.0,"lat":30.0,"pitch":-90.0,"range":8000000.0},
+  {"name":"磐能全站","obliquePhotograpy":["./main.earth.航拍地形/磐能全站/Data/Model/Model.osgb"],"threeDimensionalInspection":"./main.earth.三维巡检/磐能全站.ncm","long":117.21095300021594,"lat":25.152,"pitch":-45,"range":4200},
+  {"name":"亚中全站","obliquePhotograpy":["./main.earth.航拍地形/亚中全站/Data/Tile_+000_+000/Tile_+000_+000.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+000_+001/Tile_+000_+001.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+000_+002/Tile_+000_+002.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+000_+003/Tile_+000_+003.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+001_+000/Tile_+001_+000.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+001_+001/Tile_+001_+001.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+001_+002/Tile_+001_+002.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+001_+003/Tile_+001_+003.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+002_+000/Tile_+002_+000.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+002_+001/Tile_+002_+001.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+002_+002/Tile_+002_+002.osgb",
+					"./main.earth.航拍地形/亚中全站/Data/Tile_+002_+003/Tile_+002_+003.osgb"],"threeDimensionalInspection":"./main.earth.三维巡检/亚中全站.ncm","long":117.21095300021594,"lat":25.152,"pitch":-45,"range":4200},
+  {"name":"南瑞全站","obliquePhotograpy":["./main.earth.航拍地形/南瑞全站/Data/Model/Model.osgb"],"threeDimensionalInspection":"./main.earth.三维巡检/南瑞全站.ncm","long":117.21095300021594,"lat":25.152,"pitch":-45,"range":4200}
+ ]
+ </json>
+</map>
