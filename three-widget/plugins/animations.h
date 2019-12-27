@@ -7,15 +7,20 @@ using std::string;
 #include <set>
 using std::set;
 
+namespace ThreeQt {
 class ThreeWidget;
 
-namespace Animations {
-    struct Plugin;
-    TW_LIBRARY Plugin* CreateThreePlugin(ThreeWidget* tw);
-    TW_LIBRARY void DestoryThreePlugin(Plugin*);
-    TW_LIBRARY void TestAnimations(Plugin* plugin,bool enable);
-    TW_LIBRARY void SetModelState(Plugin* p,string name,double value);
-    TW_LIBRARY set<string> Animations(Plugin* plugin);
-}
+struct TW_LIBRARY Animations {
+    Animations(ThreeWidget* tw);
+    ~Animations();
+    void TestAnimations(bool enable);
+    void TestAnimation(string name,bool enable);
+    void SetModelState(string name,double value);
+    set<string> AnimationNames(string modelName);
 
+    struct Plugin;
+    struct AnimationVisitor;
+    Plugin* md;
+};
+}
 #endif // ANIMATIONS_H

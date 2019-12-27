@@ -1,5 +1,6 @@
 ﻿#ifndef THREEWIDGET_H
 #define THREEWIDGET_H
+
 #include "threemanipulator.h"
 
 #include <osg/Timer>
@@ -23,9 +24,16 @@ using osgViewer::Viewer;
 
 #if defined(QOPENGLWIDGET)
 #include <QOpenGLWidget>
-class ThreeWidget : public QOpenGLWidget
 #else
 #include <QGLWidget>
+#endif
+
+
+namespace ThreeQt {
+
+#if defined(QOPENGLWIDGET)
+class ThreeWidget : public QOpenGLWidget
+#else
 class ThreeWidget : public QGLWidget
 #endif
 {
@@ -55,5 +63,6 @@ public:
     bool frameHandle;
 };
 
+}
 #endif // THREEWIDGET_H
 

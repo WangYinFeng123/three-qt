@@ -1,0 +1,60 @@
+<RCC>
+    <qresource prefix="/ui/tools">
+        <file>resources/select.svg</file>
+        <file alias="move">resources/_ionicons_svg_md-move.svg</file>
+        <file>resources/_ionicons_svg_ios-move.svg</file>
+        <file alias="rotate">resources/_ionicons_svg_md-refresh.svg</file>
+        <file>resources/_ionicons_svg_ios-refresh.svg</file>
+        <file alias="scale">resources/_ionicons_svg_md-expand.svg</file>
+        <file>resources/_ionicons_svg_ios-information.svg</file>
+        <file alias="keyframes">resources/_ionicons_svg_md-information.svg</file>
+        <file alias="manipulator">resources/_ionicons_svg_md-shuffle.svg</file>
+        <file alias="hiding">resources/_ionicons_svg_md-close-circle.svg</file>
+        <file>resources/_ionicons_svg_md-close.svg</file>
+        <file alias="filter">resources/_ionicons_svg_md-wine.svg</file>
+        <file alias="fit">resources/_ionicons_svg_md-albums.svg</file>
+        <file alias="zoom">resources/_ionicons_svg_md-contract.svg</file>
+        <file alias="select">resources/select2.svg</file>
+        <file alias="preview">resources/_ionicons_svg_md-play.svg</file>
+        <file alias="preview-on-remote">resources/_ionicons_svg_md-send.svg</file>
+        <file alias="sphere">resources/_ionicons_svg_md-radio-button-off.svg</file>
+        <file alias="cube">resources/_ionicons_svg_md-cube.svg</file>
+        <file alias="camera">resources/_ionicons_svg_md-videocam.svg</file>
+        <file alias="light">resources/_ionicons_svg_md-flashlight.svg</file>
+        <file alias="rectangle">resources/_ionicons_svg_md-square.svg</file>
+        <file alias="group">resources/_ionicons_svg_ios-albums.svg</file>
+        <file alias="component">resources/_ionicons_svg_md-settings.svg</file>
+        <file alias="triangle">resources/_ionicons_svg_md-cellular.svg</file>
+        <file alias="text">resources/_ionicons_svg_logo-tumblr.svg</file>
+        <file>resources/_ionicons_svg_md-download.svg</file>
+        <file>resources/_ionicons_svg_logo-foursquare.svg</file>
+        <file>resources/_ionicons_svg_md-image.svg</file>
+        <file>resources/_ionicons_svg_md-disc.svg</file>
+        <file>resources/_ionicons_svg_md-document.svg</file>
+        <file>resources/_ionicons_svg_md-folder-open.svg</file>
+        <file>resources/_ionicons_svg_md-folder.svg</file>
+        <file>resources/_ionicons_svg_md-tv.svg</file>
+        <file>resources/_ionicons_svg_md-browsers.svg</file>
+        <file>resources/_ionicons_svg_md-square-outline.svg</file>
+        <file alias="place">resources/_ionicons_svg_md-color-wand.svg</file>
+    </qresource>
+    <qresource prefix="/ui/side">
+        <file alias="unchecked-master-or-side">resources/_ionicons_svg_ios-tv.svg</file>
+        <file alias="checked-master">resources/_ionicons_svg_ios-tv2.png</file>
+        <file alias="checked-side">resources/_ionicons_svg_ios-tv3.png</file>
+        <file alias="path">resources/_ionicons_svg_md-git-branch.svg</file>
+    </qresource>
+    <qresource prefix="/ui/action">
+        <file>resources/_ionicons_svg_md-trash.svg</file>
+        <file>resources/_ionicons_svg_md-add.svg</file>
+    </qresource>
+    <qresource prefix="/ui/project">
+        <file alias="document">resources/_ionicons_svg_md-document.svg</file>
+        <file>resources/_ionicons_svg_md-folder-open.svg</file>
+        <file alias="folder">resources/_ionicons_svg_md-folder.svg</file>
+        <file alias="project">resources/_ionicons_svg_ios-folder.svg</file>
+    </qresource>
+    <qresource prefix="/app">
+        <file alias="icon">app.ico</file>
+    </qresource>
+</RCC>

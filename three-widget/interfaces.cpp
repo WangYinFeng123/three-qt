@@ -8,6 +8,8 @@
 #include <iostream>
 using namespace std;
 
+namespace ThreeQt {
+
 ThreeWidget* CreateThreeWidget() {
     if(!Authorization::verity()) {
         cerr << "[CreateThreeWidget] 运行./config设置授权文件" << endl;
@@ -43,3 +45,4 @@ void DestoryThreeWidget(ThreeEarthWidget* tew) {
 
 
 #endif
+}

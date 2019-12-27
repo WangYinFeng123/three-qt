@@ -2,13 +2,16 @@
 #define SHADOWMAP_H
 #include "three-widget_global.h"
 
+namespace ThreeQt {
 class ThreeWidget;
 
-namespace Shadow {
-    struct Plugin;
-    TW_LIBRARY Plugin* CreateThreePlugin(ThreeWidget* tw);
-    TW_LIBRARY void TW_LIBRARY DestoryThreePlugin(Plugin*);
-    TW_LIBRARY void TW_LIBRARY Lighting(Plugin*,bool enable);
-}
+struct TW_LIBRARY Shadow {
+    Shadow(ThreeWidget* tw);
+    ~Shadow();
+    void Lighting(bool enable);
 
+    struct Plugin;
+    Plugin* md;
+};
+}
 #endif // SHADOWMAP_H

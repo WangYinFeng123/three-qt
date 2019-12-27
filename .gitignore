@@ -1,3 +1,16 @@
+run-king-client/
+run-king/
+build-three-editor-Desktop-Debug/
+three-test/moc_mainwindow.cpp
+three-test/moc_predefs.h
+three-test/ui_mainwindow.h
+
+*.*.user
+JsonCpp/JsonCpp.pro.user
+config/config.pro.user
+three-test/three-test.pro.user
+three-widget/three-widget.pro.user
+
 # Prerequisites
 *.d
 
@@ -30,3 +43,4 @@
 *.exe
 *.out
 *.app
+

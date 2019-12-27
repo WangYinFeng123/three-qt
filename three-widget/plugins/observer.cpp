@@ -26,121 +26,117 @@ using namespace std;
 
 #include <QSettings>
 
+namespace ThreeQt {
+
 static QSettings settings(GLOBAL_COMPANY,GLOBAL_NAME);
 
-namespace Observer {
-    struct Observer_Plugin {
-        ThreeWidget* tw;
-        ref_ptr<ThreeManipulator> tm;
-        ref_ptr<TeleportManipulator> tpm;
-    };
+struct Observer::Plugin {
+    ThreeWidget* tw;
+    ref_ptr<ThreeManipulator> tm;
+    ref_ptr<TeleportManipulator> tpm;
+};
 
-    struct Observer_LookingForVisitor : public NodeVisitor {
-        Observer_LookingForVisitor() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
-        virtual void apply(MatrixTransform& node) {
-            if(node.getName() == inName && 0 < node.getBound().radius()) {
-                outNode = &node;
-            }
-
-            traverse(node);
+struct Observer::LookingForVisitor : public osg::NodeVisitor {
+    LookingForVisitor() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
+    virtual void apply(MatrixTransform& node) {
+        if(node.getName() == inName && 0 < node.getBound().radius()) {
+            outNode = &node;
         }
 
-        string inName;
-        MatrixTransform* outNode;
-    };
-
-    Plugin* CreateThreePlugin(ThreeWidget* tw) {
-        Observer_Plugin* p = new Observer_Plugin;
-        p->tw = tw;
-        p->tm = tw->tm;
-        p->tpm = new TeleportManipulator();
-        p->tpm->setAllowThrow(false);
-        return reinterpret_cast<Plugin*>(p);
+        traverse(node);
     }
 
-    void DestoryThreePlugin(Plugin* plugin) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        delete p;
-    }
+    string inName;
+    MatrixTransform* outNode;
+};
 
-    void SwitchFirstPerson(Plugin* plugin,bool enable) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        Vec3d e,c,u;
-        Quat r;
-        if(enable) {
-            p->tm->getTransformation(e,r);
-            p->tw->viewer->setCameraManipulator(p->tpm);
-            p->tpm->setTransformation(e,r);
+Observer::Observer(ThreeWidget* tw) {
+    md = new Plugin;
+    md->tw = tw;
+    md->tm = tw->tm;
+    md->tpm = new TeleportManipulator();
+    md->tpm->setAllowThrow(false);
+}
 
-            p->tm->getHomePosition(e,c,u);
-            p->tpm->setHomePosition(e,c,u);
-        } else {
-            p->tpm->getTransformation(e,r);
-            p->tw->viewer->setCameraManipulator(p->tm);
-            p->tm->setTransformation(e,r);
+Observer::~Observer() {
+    delete md;
+}
+
+void Observer::SwitchFirstPerson(bool enable) {
+    osg::Vec3d e,c,u;
+    osg::Quat r;
+    if(enable) {
+        md->tm->getTransformation(e,r);
+        md->tw->viewer->setCameraManipulator(md->tpm);
+        md->tpm->setTransformation(e,r);
+
+        md->tm->getHomePosition(e,c,u);
+        md->tpm->setHomePosition(e,c,u);
+    } else {
+        md->tpm->getTransformation(e,r);
+        md->tw->viewer->setCameraManipulator(md->tm);
+        md->tm->setTransformation(e,r);
 
 //            p->tpm->getTransformation(e,c,u);
 //            double distance = (p->tm->getCenter() - c).length();
 //            p->tm->setCenter(c);
-        }
     }
+}
 
-    void LookingFor(Plugin* plugin,string name) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        if(name.empty()) return;
+void Observer::LookingFor(string name) {
+    if(name.empty()) return;
 
-        Observer_LookingForVisitor nv;
-        nv.inName = name;
-        p->tw->worldScene->accept(nv);
-        if(NULL == nv.outNode) return;
-        if(0 == nv.outNode->getNumChildren()) return;
+    LookingForVisitor nv;
+    nv.inName = name;
+    md->tw->worldScene->accept(nv);
+    if(NULL == nv.outNode) return;
+    if(0 == nv.outNode->getNumChildren()) return;
 
-        BoundingSphere b = nv.outNode->getBound();
-        if(0 == nv.outNode->getNumChildren()) return;
-        Vec3 center = nv.outNode->getChild(0)->getBound().center() * nv.outNode->getWorldMatrices()[0];
-        float distance = b.radius() * 4;
-        p->tm->teleport(p->tw->viewer->getEventQueue(),center,distance);
-    }
+    osg::BoundingSphere b = nv.outNode->getBound();
+    if(0 == nv.outNode->getNumChildren()) return;
+    Vec3 center = nv.outNode->getChild(0)->getBound().center() * nv.outNode->getWorldMatrices()[0];
+    float distance = b.radius() * 4;
+    md->tm->teleport(md->tw->viewer->getEventQueue(),center,distance);
+}
 
-    void LookingFor(Plugin* plugin,float xyz[3],float distance) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        if(xyz == NULL) return;
+void Observer::LookingFor(vec3 xyz,double distance) {
+    if(xyz.empty()) return;
+    Vec3 center(xyz[0],xyz[1],xyz[2]);
+    md->tm->teleport(md->tw->viewer->getEventQueue(),center,distance == 0.0 ? md->tm->getDistance():distance);
+}
 
-        Vec3 center(xyz[0],xyz[1],xyz[2]);
-        p->tm->teleport(p->tw->viewer->getEventQueue(),center,distance);
-    }
+void Observer::Home() {
+    md->tm->home(0);
+}
 
-    void Home(Plugin* plugin) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        p->tm->home(0);
-    }
+void Observer::HomePosition(float eye[3],float center[3],float up[3]) {
+    Vec3d e,c,u;
+    md->tm->getHomePosition(e,c,u);
+    eye[0] = e[0],eye[1] = e[1],eye[2] = e[2];
+    center[0] = c[0],center[1] = c[1],center[2] = c[2];
+    up[0] = u[0],up[1] = u[1],up[2] = u[2];
+}
 
-    void HomePosition(Plugin* plugin,float eye[3],float center[3],float up[3]) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
+void Observer::SetHomePosition(float eye[3],float center[3],float up[3]) {
+    md->tm->setHomePosition(Vec3(eye[0],eye[1],eye[2]),Vec3(center[0],center[1],center[2]),Vec3(up[0],up[1],up[2]));
+}
 
-        Vec3d e,c,u;
-        p->tm->getHomePosition(e,c,u);
-        eye[0] = e[0],eye[1] = e[1],eye[2] = e[2];
-        center[0] = c[0],center[1] = c[1],center[2] = c[2];
-        up[0] = u[0],up[1] = u[1],up[2] = u[2];
-    }
+void Observer::CameraPosition(float eye[3],float center[3],float up[3]) {
+    Vec3d e,c,u;
+    md->tm->getTransformation(e,c,u);
+    eye[0] = e[0],eye[1] = e[1],eye[2] = e[2];
+    center[0] = c[0],center[1] = c[1],center[2] = c[2];
+    up[0] = u[0],up[1] = u[1],up[2] = u[2];
+}
 
-    void SetHomePosition(Plugin* plugin,float eye[3],float center[3],float up[3]) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        p->tm->setHomePosition(Vec3(eye[0],eye[1],eye[2]),Vec3(center[0],center[1],center[2]),Vec3(up[0],up[1],up[2]));
-    }
+void Observer::SetCameraPosition(float eye[3],float center[3],float up[3]) {
+    md->tm->setTransformation(Vec3(eye[0],eye[1],eye[2]),Vec3(center[0],center[1],center[2]),Vec3(up[0],up[1],up[2]));
+}
 
-    void CameraPosition(Plugin* plugin,float eye[3],float center[3],float up[3]) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        Vec3d e,c,u;
-        p->tm->getTransformation(e,c,u);
-        eye[0] = e[0],eye[1] = e[1],eye[2] = e[2];
-        center[0] = c[0],center[1] = c[1],center[2] = c[2];
-        up[0] = u[0],up[1] = u[1],up[2] = u[2];
-    }
+void Observer::SetCameraPosition(vec3 center,double distance,vec3 axis,float degrees) {
+    md->tm->setCenter(Vec3(center[0],center[1],center[2]));
+    md->tm->setDistance(distance);
+    md->tm->setRotation(Quat(DegreesToRadians(degrees),Vec3(axis[0],axis[1],axis[2])));
+}
 
-    void SetCameraPosition(Plugin* plugin,float eye[3],float center[3],float up[3]) {
-        Observer_Plugin* p = reinterpret_cast<Observer_Plugin*>(plugin);
-        p->tm->setTransformation(Vec3(eye[0],eye[1],eye[2]),Vec3(center[0],center[1],center[2]),Vec3(up[0],up[1],up[2]));
-    }
 }

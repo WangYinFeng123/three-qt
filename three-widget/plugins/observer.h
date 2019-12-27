@@ -3,22 +3,32 @@
 #include "three-widget_global.h"
 
 #include <string>
+#include <vector>
+using std::vector;
 using std::string;
+
+namespace ThreeQt {
+typedef vector<double> vec2;
+typedef vector<double> vec3;
 
 class ThreeWidget;
 
-namespace Observer {
-    class Plugin;
-    TW_LIBRARY Plugin* CreateThreePlugin(ThreeWidget*);
-    TW_LIBRARY void DestoryThreePlugin(Plugin*);
-    TW_LIBRARY void SwitchFirstPerson(Plugin*,bool enable);
-    TW_LIBRARY void LookingFor(Plugin*,string name);
-    TW_LIBRARY void LookingFor(Plugin*,float xyz[3],float distance);
-    TW_LIBRARY void Home(Plugin*);
-    TW_LIBRARY void HomePosition(Plugin*,float eye[3],float center[3],float up[3]);
-    TW_LIBRARY void SetHomePosition(Plugin*,float eye[3],float center[3],float up[3]);
-    TW_LIBRARY void CameraPosition(Plugin*,float eye[3],float center[3],float up[3]);
-    TW_LIBRARY void SetCameraPosition(Plugin*,float eye[3],float center[3],float up[3]);
-}
+struct TW_LIBRARY Observer {
+    Observer(ThreeWidget*);
+    ~Observer();
+    void SwitchFirstPerson(bool enable);
+    void LookingFor(string name);
+    void LookingFor(vec3 xyz,double distance = 0.0);
+    void Home();
+    void HomePosition(float eye[3],float center[3],float up[3]);
+    void SetHomePosition(float eye[3],float center[3],float up[3]);
+    void CameraPosition(float eye[3],float center[3],float up[3]);
+    void SetCameraPosition(float eye[3],float center[3],float up[3]);
+    void SetCameraPosition(vec3 center,double distance,vec3 axis,float degrees);
 
+    struct Plugin;
+    struct LookingForVisitor;
+    Plugin* md;
+};
+}
 #endif // VIEWER_H

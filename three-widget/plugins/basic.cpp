@@ -10,6 +10,7 @@
 using namespace osg;
 
 #include <osgDB/ReadFile>
+#include <osgDB/WriteFile>
 using namespace osgDB;
 
 #include <osgText/Text>
@@ -18,336 +19,286 @@ using namespace osgText;
 #include <osgViewer/ViewerBase>
 using namespace osgViewer;
 #include <osgUtil/Optimizer>
+#include <osgUtil/LineSegmentIntersector>
+using namespace osgUtil;
 
 #include <set>
 using namespace std;
 
 #include <QSettings>
+static QSettings settings(GLOBAL_COMPANY,GLOBAL_NAME);
 
-namespace Basic {
-    static QSettings settings(GLOBAL_COMPANY,GLOBAL_NAME);
-    struct Basic_Plugin {
-        ThreeWidget* tw;
-        ref_ptr<MatrixTransform> mtScene;
-        ref_ptr<Node> scene;
-        ref_ptr<StateSet> lookingModelStateSet;
-        ref_ptr<Node> showingModel;
-        ref_ptr<Program> program;
-        ref_ptr<Camera> background;
-        ref_ptr<Group> bubbles;
-    };
+namespace ThreeQt {
+struct Basic::Plugin {
+    ThreeWidget* tw;
+    ref_ptr<MatrixTransform> mtScene;
+    ref_ptr<Node> scene;
+    ref_ptr<Camera> background;
+    ref_ptr<Group> bubbles;
+};
 
-    struct _NameVisitor : public NodeVisitor {
-        _NameVisitor() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
-        virtual void apply(MatrixTransform& node) {
-            if(!node.getName().empty()) {
-                outNames.insert(node.getName());
-                outNodes.insert(&node);
-            }
-            traverse(node);
+struct Basic::NameVisitor : public NodeVisitor {
+    NameVisitor() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
+    virtual void apply(MatrixTransform& node) {
+        if(!node.getName().empty()) {
+            outNames.insert(node.getName());
+            outNodes.insert(&node);
+        }
+        traverse(node);
+    }
+
+    set<string> outNames;
+    set<MatrixTransform*> outNodes;
+};
+
+struct Basic::LookingForVisitor : public NodeVisitor {
+    LookingForVisitor() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
+    virtual void apply(MatrixTransform& node) {
+        if(node.getName() == inName && 0 < node.getBound().radius()) {
+            outNode = &node;
         }
 
-        set<string> outNames;
-        set<MatrixTransform*> outNodes;
-    };
-
-    struct Basic_LookingForVisitor : public NodeVisitor {
-        Basic_LookingForVisitor() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
-        virtual void apply(MatrixTransform& node) {
-            if(node.getName() == inName && 0 < node.getBound().radius()) {
-                outNode = &node;
-            }
-
-            traverse(node);
-        }
-
-        string inName;
-        MatrixTransform* outNode;
-    };
-
-    struct _HeightLightCallback : public Uniform::Callback {
-        _HeightLightCallback() : incRed(false) {}
-        virtual void operator()(Uniform* uniform, NodeVisitor*) {
-            if(!uniform) return;
-
-            Vec4 color;
-            uniform->get(color);
-
-            if(incRed) {
-                if(color.y() < 1.0) color.y() += 0.01;
-                else incRed = false;
-            } else {
-                if(color.y() > 0.0) color.y() -= 0.01;
-                else incRed = true;
-            }
-
-            uniform->set(color);
-        }
-
-        bool incRed;
-    };
-
-    Plugin* CreateThreePlugin(ThreeWidget* tw) {
-        Basic_Plugin* p = new Basic_Plugin;
-        p->tw = tw;
-        p->mtScene = new MatrixTransform;
-
-        p->background = new osg::Camera;
-        p->background->setClearMask(0);
-        p->background->setCullingActive( false );
-        p->background->setAllowEventFocus( false );
-        p->background->setReferenceFrame( osg::Transform::ABSOLUTE_RF );
-        p->background->setRenderOrder( osg::Camera::POST_RENDER );
-        p->background->setProjectionMatrix( osg::Matrix::ortho2D(0.0, 1.0, 0.0, 1.0) );
-
-        StateSet* ss = p->background->getOrCreateStateSet();
-        ss->setMode( StateAttribute::LIGHT, osg::StateAttribute::OFF );
-        ss->setAttributeAndModes(new osg::Depth(osg::Depth::LEQUAL, 1.0, 1.0));
-
-        p->tw->worldScene->addChild(p->background);
-        p->bubbles = new Group();
-        p->tw->initScene->addChild(p->bubbles);
-        return reinterpret_cast<Plugin*>(p);
+        traverse(node);
     }
 
-    void DestoryThreePlugin(Plugin* plugin) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        p->tw->worldScene->removeChild(p->background);
-        delete p;
-    }
+    string inName;
+    MatrixTransform* outNode;
+};
 
-    void AddScene(Basic::Plugin* plugin,string modelPath) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        p->scene = readRefNodeFile(modelPath);
-        p->mtScene->addChild(p->scene);
-        p->tw->worldScene->addChild(p->mtScene);
+struct Basic::HeightLightCallback : public Uniform::Callback {
+    HeightLightCallback() : incRed(false) {}
+    virtual void operator()(Uniform* uniform, NodeVisitor*) {
+        if(!uniform) return;
 
-        BoundingSphere bound = p->tw->worldScene->getBound();
-        Vec3 bc = bound.center();
-        float br = bound.radius() * 1.5;
-        p->tw->tm->setHomePosition(Vec3(br,-br,br) + bc,bc,Vec3(0,0,1));
-        p->tw->tm->home(0);
-    }
+        Vec4 color;
+        uniform->get(color);
 
-    void OpenScene(Basic::Plugin* plugin,string modelPath) {
-        CloseScene(plugin);
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        p->scene = readRefNodeFile(modelPath);
-        p->mtScene->addChild(p->scene);
-        p->tw->worldScene->addChild(p->mtScene);
-
-        BoundingSphere bound = p->tw->worldScene->getBound();
-        Vec3 bc = bound.center();
-        float br = bound.radius() * 1.5;
-        p->tw->tm->setHomePosition(Vec3(br,-br,br) + bc,bc,Vec3(0,0,1));
-        p->tw->tm->home(0);
-    }
-
-    void CloseScene(Basic::Plugin* plugin) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        p->mtScene->removeChild(0,p->mtScene->getNumChildren());
-        p->bubbles->removeChild(0,p->bubbles->getNumChildren());
-    }
-
-    void AxisRotate(Plugin* plugin,float x,float y,float z,double degress) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        p->mtScene->setMatrix(Matrix::rotate(DegreesToRadians(degress),Vec3(x,y,z)));
-    }
-
-    set<string> Models(Basic::Plugin* plugin) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        _NameVisitor nv;
-        p->mtScene->accept(nv);
-        return nv.outNames;
-    }
-
-    void HeightLight(Plugin* plugin,string name,bool enable) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        if(name.empty()) return;
-        if(!enable) {
-            if(p->lookingModelStateSet.valid()) p->lookingModelStateSet->removeAttribute(p->program);
-            return;
-        }
-
-        Basic_LookingForVisitor nv;
-        nv.inName = name;
-        p->tw->worldScene->accept(nv);
-        if(NULL == nv.outNode) return;
-        if(0 == nv.outNode->getNumChildren()) return;
-
-        char vs[] = "\
-                varying vec3 normal;\
-                void main() {\
-                    normal = normalize(gl_NormalMatrix * gl_Normal);\
-                    gl_Position = ftransform();\
-                }";
-        char fs[] = "\
-                uniform vec4 mainColor;\
-                varying vec3 normal;\
-                void main() {\
-                    gl_FragColor = mainColor;\
-                    gl_FragDepth = 0.0;\
-                }";
-
-        p->lookingModelStateSet = nv.outNode->getOrCreateStateSet();
-        p->program = new Program;
-        Shader* shaderV = new Shader(Shader::VERTEX,vs);
-        Shader* shaderF = new Shader(Shader::FRAGMENT,fs);
-        p->program->addShader(shaderV);
-        p->program->addShader(shaderF);
-        Uniform* mainColor = new Uniform("mainColor",Vec4(1.0,0.5,0.5,0.5));
-        mainColor->setUpdateCallback(new _HeightLightCallback);
-        p->lookingModelStateSet->addUniform(mainColor);
-        p->lookingModelStateSet->setAttributeAndModes(p->program);
-    }
-
-    void SetBackground(Plugin* plugin,string imagePath) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        if(!imagePath.empty()) {
-            osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
-            osg::ref_ptr<osg::Image> image = osgDB::readImageFile(imagePath);
-            texture->setImage(image.get());
-
-            osg::ref_ptr<osg::Drawable> quad = osg::createTexturedQuadGeometry(osg::Vec3(), osg::Vec3(1.0f, 0.0f, 0.0f), osg::Vec3(0.0f, 1.0f, 0.0f) );
-            quad->getOrCreateStateSet()->setTextureAttributeAndModes( 0,texture.get());
-
-            osg::ref_ptr<osg::Geode> geode = new osg::Geode;
-            geode->addDrawable( quad.get());
-            p->background->addChild(geode.get());
+        if(incRed) {
+            if(color.y() < 1.0) color.y() += 0.01;
+            else incRed = false;
         } else {
-            p->background->removeChild(0,p->background->getNumChildren());
-        }
-    }
-
-    void SetBackground(Plugin* plugin,float x,float y,float z,float w) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        Camera* c = p->tw->viewer->getCamera();
-        c->setClearColor(Vec4(x,y,z,w));
-    }
-
-    void SetHandleFrame(Plugin* plugin,bool enable) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        if(p->tw->frameHandle == enable) return;
-        p->tw->frameHandle = enable;
-        if(!enable) RunFrame(plugin);
-    }
-
-    void RunFrame(Plugin* plugin) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        if(p->tw->viewer.valid() && p->tw->isValid()) {
-            p->tw->makeCurrent();
-            p->tw->viewer->frame();
-            p->tw->doneCurrent();
+            if(color.y() > 0.0) color.y() -= 0.01;
+            else incRed = true;
         }
 
-        p->tw->update();
+        uniform->set(color);
     }
 
-    void BoundBox(Plugin* plugin,float center[3],float& radius) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        BoundingSphere b = p->tw->worldScene->getBound();
-        center[0] = b.center()[0];
-        center[1] = b.center()[1];
-        center[2] = b.center()[2];
-        radius = b.radius();
-    }
+    bool incRed;
+};
 
-    void Bubbles(Plugin* plugin,bool enable) {
-        Basic_Plugin* p = reinterpret_cast<Basic_Plugin*>(plugin);
-        p->bubbles->removeChild(0,p->bubbles->getNumChildren());
-        if(enable) {
-            QString fontFilePath = settings.value("fontFilePath").toString();
+Basic::Basic(ThreeWidget* tw) {
+    md = new Basic::Plugin;
+    md->tw = tw;
+    md->mtScene = new MatrixTransform;
 
-            _NameVisitor nv;
-            p->tw->worldScene->accept(nv);
+    md->background = new osg::Camera;
+    md->background->setClearMask(0);
+    md->background->setCullingActive( false );
+    md->background->setAllowEventFocus( false );
+    md->background->setReferenceFrame( osg::Transform::ABSOLUTE_RF );
+    md->background->setRenderOrder( osg::Camera::POST_RENDER );
+    md->background->setProjectionMatrix( osg::Matrix::ortho2D(0.0, 1.0, 0.0, 1.0) );
 
-            for(set<MatrixTransform*>::iterator it = nv.outNodes.begin();it != nv.outNodes.end();it++) {
-                MatrixTransform* node = *it;
-                Text* text = new Text();
-                text->setNodeMask(0x1);
-                text->setText(node->getName(),String::ENCODING_UTF8);
-                text->setFont(osgText::readFontFile(fontFilePath.toLocal8Bit().data()));
-                text->setColor(Vec4(1,1,0,1));
-                text->setCharacterSize(40);
-                text->setAxisAlignment(TextBase::SCREEN);
-                text->setCharacterSizeMode(Text::SCREEN_COORDS);
-                text->setAlignment(Text::CENTER_BOTTOM);
+    StateSet* ss = md->background->getOrCreateStateSet();
+    ss->setMode( StateAttribute::LIGHT, osg::StateAttribute::OFF );
+    ss->setAttributeAndModes(new osg::Depth(osg::Depth::LEQUAL, 1.0, 1.0));
 
-                BoundingSphere b = node->getBound();
-                if(0 == node->getNumChildren()) continue;
-                Vec3 center = node->getChild(0)->getBound().center() * node->getWorldMatrices()[0];
-                center.z() += b.radius();
-                text->setPosition(center);
-                Geode* gtext = new Geode();
-                gtext->addDrawable(text);
-                LOD* lod = new LOD();
-                lod->addChild(gtext,0, b.radius() * 7);
-                p->bubbles->addChild(lod);
-            }
-      }
+    md->tw->worldScene->addChild(md->background);
+    md->bubbles = new Group();
+    md->tw->initScene->addChild(md->bubbles);
 }
 
-#if defined (OSGEARTH)
-    struct _Basic_EarthPlugin {
-        ThreeEarthWidget* tew;
-    };
+Basic::~Basic() {
+    md->tw->worldScene->removeChild(md->background);
+    delete md;
+}
 
-    EarthPlugin* CreateThreePlugin(ThreeEarthWidget* tew) {
-        _Basic_EarthPlugin* p = new _Basic_EarthPlugin;
-        p->tew = tew;
-        return reinterpret_cast<EarthPlugin*>(p);
+string Basic::OpenScene(string modelPath) {
+    CloseScene();
+    md->scene = readRefNodeFile(modelPath);
+    md->mtScene->addChild(md->scene);
+    md->tw->worldScene->addChild(md->mtScene);
+
+    BoundingSphere bound = md->tw->worldScene->getBound();
+    Vec3 bc = bound.center();
+    float br = bound.radius() * 1.5;
+    md->tw->tm->setHomePosition(Vec3(br,-br,br) + bc,bc,Vec3(0,0,1));
+    md->tw->tm->home(0);
+
+    stringstream fmt; fmt << "scene_" << hex << md->scene.get();
+    md->mtScene->setName(fmt.str());
+    return fmt.str();
+}
+
+void Basic::CloseScene(){
+    md->mtScene->removeChild(0,md->mtScene->getNumChildren());
+    md->bubbles->removeChild(0,md->bubbles->getNumChildren());
+    md->tw->worldScene->removeChild(md->mtScene);
+}
+
+void Basic::AxisRotate(float x,float y,float z,double degrees) {
+    md->mtScene->setMatrix(Matrix::rotate(DegreesToRadians(degrees),Vec3(x,y,z)));
+}
+
+set<string> Basic::Models() {
+    NameVisitor nv;
+    md->mtScene->accept(nv);
+    return nv.outNames;
+}
+
+void Basic::HeightLight(string name,float rgba[4]){
+    if(name.empty() || rgba[4] == NULL) return;
+
+    LookingForVisitor nv;
+    nv.inName = name;
+    md->tw->worldScene->accept(nv);
+    if(NULL == nv.outNode) return;
+    if(0 == nv.outNode->getNumChildren()) return;
+    StateSet* ss = nv.outNode->getOrCreateStateSet();
+
+    char vs[] = "\
+            void main() {\
+                gl_Position = ftransform();\
+            }";
+    char fs[] = "\
+            uniform vec4 mainColor;\
+            void main() {\
+                gl_FragColor = mainColor;\
+                gl_FragDepth = 0.0;\
+            }";
+
+    Program* program = new Program;
+    Shader* shaderV = new Shader(Shader::VERTEX,vs);
+    Shader* shaderF = new Shader(Shader::FRAGMENT,fs);
+    program->addShader(shaderV);
+    program->addShader(shaderF);
+    Uniform* mainColor = new Uniform("mainColor",Vec4(rgba[0],rgba[1],rgba[2],rgba[3]));
+    ss->addUniform(mainColor);
+    ss->setAttributeAndModes(program);
+}
+void Basic::HeightLight(string name,bool enable){
+    LookingForVisitor nv;
+    nv.inName = name;
+    md->tw->worldScene->accept(nv);
+    if(NULL == nv.outNode) return;
+    if(0 == nv.outNode->getNumChildren()) return;
+    StateSet* lookingModelStateSet = nv.outNode->getOrCreateStateSet();
+
+    if(!enable) {
+        lookingModelStateSet->removeAttribute(StateAttribute::PROGRAM);
+        return;
     }
 
-    void DestoryThreePlugin(EarthPlugin* plugin) {
-        _Basic_EarthPlugin* p = reinterpret_cast<_Basic_EarthPlugin*>(plugin);
-        delete p;
+    char vs[] = "\
+            varying vec3 normal;\
+            void main() {\
+                normal = normalize(gl_NormalMatrix * gl_Normal);\
+                gl_Position = ftransform();\
+            }";
+    char fs[] = "\
+            uniform vec4 mainColor;\
+            varying vec3 normal;\
+            void main() {\
+                gl_FragColor = mainColor;\
+                gl_FragDepth = 0.0;\
+            }";
+
+    Program* program = new Program;
+    Shader* shaderV = new Shader(Shader::VERTEX,vs);
+    Shader* shaderF = new Shader(Shader::FRAGMENT,fs);
+    program->addShader(shaderV);
+    program->addShader(shaderF);
+    Uniform* mainColor = new Uniform("mainColor",Vec4(1.0,0.5,0.5,0.5));
+    mainColor->setUpdateCallback(new HeightLightCallback);
+    lookingModelStateSet->addUniform(mainColor);
+    lookingModelStateSet->setAttributeAndModes(program);
+}
+
+void Basic::SetBackground(string imagePath) {
+    if(!imagePath.empty()) {
+        osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
+        osg::ref_ptr<osg::Image> image = osgDB::readImageFile(imagePath);
+        texture->setImage(image.get());
+
+        osg::ref_ptr<osg::Drawable> quad = osg::createTexturedQuadGeometry(osg::Vec3(), osg::Vec3(1.0f, 0.0f, 0.0f), osg::Vec3(0.0f, 1.0f, 0.0f) );
+        quad->getOrCreateStateSet()->setTextureAttributeAndModes( 0,texture.get());
+
+        osg::ref_ptr<osg::Geode> geode = new osg::Geode;
+        geode->addDrawable( quad.get());
+        md->background->addChild(geode.get());
+    } else {
+        md->background->removeChild(0,md->background->getNumChildren());
+    }
+}
+void Basic::SetBackground(float r,float g,float b,float a){
+    Camera* c = md->tw->viewer->getCamera();
+    c->setClearColor(Vec4(r,g,b,a));
+}
+void Basic::SetHandleFrame(bool enable){
+    if(md->tw->frameHandle == enable) return;
+    md->tw->frameHandle = enable;
+    if(!enable) RunFrame();
+}
+void Basic::RunFrame(){
+    if(md->tw->viewer.valid() && md->tw->isValid()) {
+        md->tw->makeCurrent();
+        md->tw->viewer->frame();
+        md->tw->doneCurrent();
     }
 
-    void SetHandleFrame(EarthPlugin* plugin,bool enable) {
-        _Basic_EarthPlugin* p = reinterpret_cast<_Basic_EarthPlugin*>(plugin);
-        if(p->tew->frameHandle == enable) return;
-        p->tew->frameHandle = enable;
-        if(!enable) RunFrame(plugin);
-    }
+    md->tw->update();
+}
+pair<vec3,float> Basic::BoundBox() {
+    auto b = md->tw->worldScene->getBound();
+    return make_pair(vec3 {b.center()[0],b.center()[1],b.center()[2]},b.radius());
+}
+void Basic::Bubbles(bool enable){
+    md->bubbles->removeChild(0,md->bubbles->getNumChildren());
+    if(enable) {
+        QString fontFilePath = settings.value("fontFilePath").toString();
 
-    void RunFrame(EarthPlugin* plugin) {
-        _Basic_EarthPlugin* p = reinterpret_cast<_Basic_EarthPlugin*>(plugin);
+        NameVisitor nv;
+        md->tw->worldScene->accept(nv);
 
-        if(p->tew->viewer.valid() && p->tew->isValid()) {
-            p->tew->makeCurrent();
-            p->tew->viewer->frame();
-            p->tew->doneCurrent();
+        for(set<MatrixTransform*>::iterator it = nv.outNodes.begin();it != nv.outNodes.end();it++) {
+            MatrixTransform* node = *it;
+            Text* text = new Text();
+            text->setNodeMask(0x1);
+            text->setText(node->getName(),String::ENCODING_UTF8);
+            text->setFont(osgText::readFontFile(fontFilePath.toLocal8Bit().data()));
+            text->setColor(Vec4(1,1,0,1));
+            text->setCharacterSize(40);
+            text->setAxisAlignment(TextBase::SCREEN);
+            text->setCharacterSizeMode(Text::SCREEN_COORDS);
+            text->setAlignment(Text::CENTER_BOTTOM);
+
+            BoundingSphere b = node->getBound();
+            if(0 == node->getNumChildren()) continue;
+            Vec3 center = node->getChild(0)->getBound().center() * node->getWorldMatrices()[0];
+            center.z() += b.radius();
+            text->setPosition(center);
+            Geode* gtext = new Geode();
+            gtext->addDrawable(text);
+            LOD* lod = new LOD();
+            lod->addChild(gtext,0, b.radius() * 7);
+            md->bubbles->addChild(lod);
         }
+    }
+}
 
-        p->tew->update();
+pair<vec3,string> Basic::Intersect(vec2 xy, unsigned int mask) {
+    LineSegmentIntersector::Intersections lis;
+    if(!md->tw->viewer->computeIntersections(xy[0],xy[1],lis,mask)) return make_pair(vec3{},"");
+
+    NodePath np = lis.begin()->nodePath;
+    Transform* n = nullptr;
+    for(auto it = np.rbegin();np.rend() != it;it++) {
+        n = dynamic_cast<Transform*>(*it);
+        if(n != nullptr && !n->getName().empty()) break;
     }
 
-
-    void LookingFor(EarthPlugin* plugin,double longitude,double latitude,double pitch,double range,double duration) {
-        _Basic_EarthPlugin* p = reinterpret_cast<_Basic_EarthPlugin*>(plugin);
-        osgEarth::Viewpoint vp("", longitude, latitude, 0.0, 0.0, pitch, range);
-        p->tew->om->setViewpoint(vp,duration);
-    }
-
-    void Home(EarthPlugin* plugin) {
-        _Basic_EarthPlugin* p = reinterpret_cast<_Basic_EarthPlugin*>(plugin);
-        p->tew->om->home(0);
-    }
-
-    void SetHomePosition(EarthPlugin* plugin,double longitude,double latitude,double pitch,double range) {
-        _Basic_EarthPlugin* p = reinterpret_cast<_Basic_EarthPlugin*>(plugin);
-        osgEarth::Viewpoint vp("", longitude, latitude, 0.0, 0.0, pitch, range);
-        p->tew->om->setHomeViewpoint(vp);
-    }
-
-    void CameraPosition(EarthPlugin* plugin,double &longitude,double &latitude,double &pitch,double &range) {
-        _Basic_EarthPlugin* p = reinterpret_cast<_Basic_EarthPlugin*>(plugin);
-        osgEarth::Viewpoint vp = p->tew->om->getViewpoint();
-        longitude = vp.focalPoint()->x();
-        latitude = vp.focalPoint()->y();
-        pitch = vp.pitch()->getValue();
-        range = vp.range()->getValue();
-    }
-
-#endif
+    Vec3 point = lis.begin()->getWorldIntersectPoint();
+    return make_pair(vec3{point[0],point[1],point[2]},n->getName());
+}
 }

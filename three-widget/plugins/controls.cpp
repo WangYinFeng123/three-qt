@@ -19,199 +19,102 @@ using osg::NodePath;
 using osg::Transform;
 
 #include <iostream>
-using std::cout;
-using std::cerr;
-using std::endl;
+using namespace std;
 
-namespace Controls {
-    struct Controls_GUIEventHandler;
+namespace ThreeQt {
 
-    struct Controls_Plugin {
-        ThreeWidget* tw;
-        ref_ptr<Controls_GUIEventHandler> handler;
-    };
 
-    struct Controls_GUIEventHandler : public GUIEventHandler {
-#if defined(QT5)
-        function<bool(string,float[3])> mouseOverCallback;
-        function<bool(MouseButtonMask,string,float[3])> mouseClickCallback;
-        function<bool(ScrollingMotion,double)> mouseWheelCallback;
-#else
-        MouseOverEventHandler* mouseOverCallback;
-        MouseClickEventHandler* mouseClickCallback;
-#endif
-        bool scroll;
-        ScrollingMotion sm;
-        Controls_GUIEventHandler() : GUIEventHandler(),mouseOverCallback(NULL), mouseClickCallback(NULL), scroll(false) {}
-        virtual bool handle(const GUIEventAdapter& ea,GUIActionAdapter& aa, osg::Object* obj, osg::NodeVisitor*) {
-            View* view = dynamic_cast<View*>(&aa);
-            LineSegmentIntersector::Intersections lis;
+struct Controls::Plugin {
+    ThreeWidget* tw;
+    ref_ptr<EventHandler> handler;
+};
 
-            //鼠标事件
-            switch(ea.getEventType()) {
-            case GUIEventAdapter::MOVE: {
-#if defined(QT5)
-                if(!mouseOverCallback) break;
-#else
-                if(mouseOverCallback == NULL) break;
-#endif
-                if(!view->computeIntersections(ea.getX(),ea.getY(),lis,0x2)) {
-#if defined(QT5)
-                    return mouseOverCallback("",nullptr);
-#else
-                    return (*mouseOverCallback)("",NULL);
-#endif
-                }
+struct Controls::EventHandler : public GUIEventHandler {
+    function<void(vec2 xy)> mouseOverCallback;
+    function<bool(MouseButton,MouseEventType,vec2 xy,vec2 xyNormalized)> mouseClickCallback;
+    function<bool(ScrollingMotion,double)> mouseWheelCallback;
+    function<void()> frameCallback;
 
-                NodePath np = lis.begin()->nodePath;
-                Transform* n = NULL;
-                for(NodePath::reverse_iterator it = np.rbegin();np.rend() != it;it++) {
-                    n = dynamic_cast<osg::Transform*>(*it);
-                    if(n != NULL && !n->getName().empty()) break;
-                }
+    bool scroll;
+    ScrollingMotion sm;
+    double t;
+    MouseButton mb;
 
-                Vec3 point = lis.begin()->getWorldIntersectPoint();
-                float xyz[3] = {point[0],point[1],point[2]};
+    EventHandler() : GUIEventHandler(), scroll(false), t(0) {}
 
-#if defined(QT5)
-                return mouseOverCallback(n->getName(),xyz);
-#else
-                return (*mouseOverCallback)(n->getName(),xyz);
-#endif
-                }
-            case GUIEventAdapter::PUSH: {
-#if defined(QT5)
-                if(!mouseClickCallback) break;
-#else
-                if(mouseClickCallback == NULL) break;
-#endif
-                if(!view->computeIntersections(ea.getX(),ea.getY(),lis,0x2)) {
-#if defined(QT5)
-                    return mouseClickCallback(static_cast<MouseButtonMask>(ea.getButtonMask()),"",nullptr);
-#else
-                    return (*mouseClickCallback)(static_cast<MouseButtonMask>(ea.getButtonMask()),"",NULL);
-#endif
-                }
-                NodePath np = lis.begin()->nodePath;
-                Transform* n = NULL;
-                for(NodePath::reverse_iterator it = np.rbegin();np.rend() != it;it++) {
-                    n = dynamic_cast<osg::Transform*>(*it);
-                    if(n != NULL && !n->getName().empty()) break;
-                }
-                Vec3 point = lis.begin()->getWorldIntersectPoint();
-                float xyz[3] = {point[0],point[1],point[2]};
-#if defined(QT5)
-                return mouseClickCallback(static_cast<MouseButtonMask>(ea.getButtonMask()),n->getName(),xyz);
-#else
-                return (*mouseClickCallback)(static_cast<MouseButtonMask>(ea.getButtonMask()),n->getName(),xyz);
-#endif
-            }
-            case GUIEventAdapter::SCROLL: {
-#if defined(QT5)
-                if(!mouseWheelCallback) break;
-#endif
-                ThreeManipulator* tm = dynamic_cast<ThreeManipulator*>(view->getCameraManipulator());
+    virtual bool handle(const GUIEventAdapter& ea,GUIActionAdapter& aa, osg::Object* obj, osg::NodeVisitor*) {
+        View* view = dynamic_cast<View*>(&aa);
+        auto et = ea.getEventType();
+        auto bm = ea.getButtonMask();
+
+        switch(et) {
+        case GUIEventAdapter::MOVE:
+            if(!mouseOverCallback) break;
+            mouseOverCallback({ea.getX(),ea.getY()});
+            break;
+        case GUIEventAdapter::PUSH:
+            if(!mouseClickCallback) break;
+            mb = static_cast<MouseButton>(bm);
+            if((ea.getTime() - t) < 0.25)
+                t = 0.0,mouseClickCallback(mb,static_cast<MouseEventType>(GUIEventAdapter::DOUBLECLICK),{ea.getX(),ea.getY()},{ea.getXnormalized(),ea.getYnormalized()});
+            else
+                t = ea.getTime();
+        case GUIEventAdapter::DRAG:
+        case GUIEventAdapter::RELEASE:
+            if(!mouseClickCallback) break;
+            return mouseClickCallback(mb,static_cast<MouseEventType>(et),{ea.getX(),ea.getY()},{ea.getXnormalized(),ea.getYnormalized()});
+        case GUIEventAdapter::SCROLL: {
+            if(!mouseWheelCallback) break;
+            ThreeManipulator* tm = dynamic_cast<ThreeManipulator*>(view->getCameraManipulator());
+            if(tm != NULL) return mouseWheelCallback(sm,tm->getDistance());
 #if defined (OSGEARTH)
-                auto em = dynamic_cast<EarthManipulator*>(view->getCameraManipulator());
-#endif
-
-                if(tm != NULL) {
-#if defined(QT5)
-                    return mouseWheelCallback(sm,tm->getDistance());
-#endif
-                }
-#if defined (OSGEARTH)
-                else if(em != nullptr) {
-                    auto vp = em->getViewpoint();
-                    return mouseWheelCallback(sm,vp.getRange());
-                }
-#endif
+            else if(em != nullptr) {
+                auto vp = em->getViewpoint();
+                return mouseWheelCallback(sm,vp.getRange());
             }
-            case GUIEventAdapter::FRAME:
-                break;
-            default:break;
-            }
-
-            return false;
-        };
-    };
-
-    Plugin* CreateThreePlugin(ThreeWidget* tw) {
-        Controls_Plugin* p = new Controls_Plugin;
-        p->tw = tw;
-        p->handler = new Controls_GUIEventHandler;
-        p->tw->viewer->addEventHandler(p->handler);
-        return reinterpret_cast<Plugin*>(p);
-    }
-
-    void DestoryThreePlugin(Plugin* plugin) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->tw->viewer->removeEventHandler(p->handler);
-        delete reinterpret_cast<Controls_Plugin*>(p);
-    }
-
-    void SetMouseButton(Plugin* plugin,MouseButtonMask mouseCenter, MouseButtonMask mousePan,MouseButtonMask mouseRotate) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->tw->mouseLeft = mouseCenter;
-        p->tw->mouseMid = mousePan;
-        p->tw->mouseRight = mouseRotate;
-    }
-
-#if defined(QT5)
-    void SetMouseWheel(Plugin* plugin,ScrollingMotion mouseWheelUp, ScrollingMotion mouseWheelDown) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->tw->mouseWheelUp = mouseWheelUp;
-        p->tw->mouseWheelDown = mouseWheelDown;
-    }
-
-    void SetMouseOverEventHandler(Plugin* plugin,function<bool(string name,float xyz[3])> f) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->handler->mouseOverCallback = f;
-    }
-
-    void SetMouseClickEventHandler(Plugin* plugin,function<bool(MouseButtonMask,string name,float xyz[3])> f) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->handler->mouseClickCallback = f;
-    }
-
-    void SetMouseWheelEventHandler(Plugin* plugin,function<bool(ScrollingMotion,double distance)> f) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->handler->mouseWheelCallback = f;
-    }
-#else
-    void SetMouseOverEventHandler(Plugin* plugin,MouseOverEventHandler* f) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->handler->mouseOverCallback = f;
-    }
-
-    void SetMouseClickEventHandler(Plugin* plugin,MouseClickEventHandler* f) {
-        Controls_Plugin* p = reinterpret_cast<Controls_Plugin*>(plugin);
-        p->handler->mouseClickCallback = f;
-    }
 #endif
+        }
+        case GUIEventAdapter::FRAME:
+            if(!frameCallback) break;
+            frameCallback();
+            break;
+        default:break;
+        }
 
-#if defined (OSGEARTH)
-    struct _Controls_EarthPlugin {
-        ThreeEarthWidget* tew;
-        ref_ptr<Controls_GUIEventHandler> handler;
+        return false;
     };
+};
 
-    EarthPlugin* CreateThreePlugin(ThreeEarthWidget* tew) {
-        _Controls_EarthPlugin* p = new _Controls_EarthPlugin;
-        p->tew = tew;
-        p->handler = new Controls_GUIEventHandler;
-        p->tew->viewer->addEventHandler(p->handler);
-        return reinterpret_cast<EarthPlugin*>(p);
-    }
+Controls::Controls(ThreeWidget* tw) {
+    md = new Plugin;
+    md->tw = tw;
+    md->handler = new EventHandler;
+    md->tw->viewer->addEventHandler(md->handler);
+}
+Controls::~Controls() {
+    md->tw->viewer->removeEventHandler(md->handler);
+    delete md;
+}
+void Controls::SetMouseButton(MouseButton mouseCenter, MouseButton mousePan,MouseButton mouseRotate) {
+    md->tw->mouseLeft = mouseCenter;
+    md->tw->mouseMid = mousePan;
+    md->tw->mouseRight = mouseRotate;
+}
+void Controls::SetMouseWheel(ScrollingMotion mouseWheelUp, ScrollingMotion mouseWheelDown) {
+    md->tw->mouseWheelUp = mouseWheelUp;
+    md->tw->mouseWheelDown = mouseWheelDown;
+}
+void Controls::SetMouseOverEventHandler(function<void (vec2 xy)> f) {
+    md->handler->mouseOverCallback = f;
+}
+void Controls::SetMouseClickEventHandler(function<bool (MouseButton, MouseEventType,vec2 xy,vec2 xyNormalized)> f) {
+    md->handler->mouseClickCallback = f;
+}
+void Controls::SetMouseWheelEventHandler(function<bool(ScrollingMotion,double distance)> f) {
+    md->handler->mouseWheelCallback = f;
+}
+void Controls::SetFrameEventhandler(function<void()> f) {
+    md->handler->frameCallback = f;
+}
 
-    void DestoryThreePlugin(EarthPlugin* plugin) {
-        _Controls_EarthPlugin* p = reinterpret_cast<_Controls_EarthPlugin*>(plugin);
-        delete reinterpret_cast<_Controls_EarthPlugin*>(p);
-    }
-
-    void SetMouseWheelEventHandler(EarthPlugin* plugin,function<void(ScrollingMotion,double range)> f) {
-        _Controls_EarthPlugin* p = reinterpret_cast<_Controls_EarthPlugin*>(plugin);
-        p->handler->mouseWheelCallback = f;
-    }
-#endif
 }

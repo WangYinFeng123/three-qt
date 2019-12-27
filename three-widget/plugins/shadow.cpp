@@ -14,7 +14,6 @@ using namespace osgText;
 using namespace osgAnimation;
 #include <osgShadow/ShadowedScene>
 #include <osgShadow/ShadowMap>
-#include <osgShadow/ShadowVolume>
 using namespace osgShadow;
 
 #include <set>
@@ -22,15 +21,15 @@ using namespace std;
 
 #include <QSettings>
 
-namespace Shadow {
-    struct Shadow_Plugin {
+namespace ThreeQt {
+    struct Shadow::Plugin {
         ThreeWidget* tw;
         ref_ptr<ShadowedScene> scene;
     };
 
-    Plugin* CreateThreePlugin(ThreeWidget* tw) {
-        Shadow_Plugin* p = new Shadow_Plugin;
-        p->tw = tw;
+    Shadow::Shadow(ThreeWidget* tw) {
+        md = new Plugin();
+        md->tw = tw;
 
         LightSource* ls = new LightSource;
         ls->getLight()->setLightNum(1);
@@ -43,37 +42,31 @@ namespace Shadow {
         ls->getLight()->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
         ls->getLight()->setSpecular(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-#if defined(QOPENGLWIDGET)
-        ShadowVolume* shadowMap = new ShadowVolume;
-#else
         ShadowMap* shadowMap = new ShadowMap;
-        shadowMap->setTextureSize(Vec2s(640 * 8,480 * 8));
+        auto size = shadowMap->getTextureSize();
+        cout << size.x() << ' ' << size.y() << ' ' << size.r() << ' ' << size.g() << endl;
+        shadowMap->setTextureSize(Vec2s(size.x() * 10,size.y() * 10));
         shadowMap->setAmbientBias(Vec2(0.8f,0.5f));
         shadowMap->setLight(ls);
-#endif
-        p->scene = new ShadowedScene(shadowMap);
-        p->scene->setCastsShadowTraversalMask(0x1 << 3);
-        p->scene->setReceivesShadowTraversalMask(0x1 << 4);
-        p->scene->addChild(ls);
-        p->scene->addChild(p->tw->worldScene);
-        return reinterpret_cast<Plugin*>(p);
+
+        md->scene = new ShadowedScene(shadowMap);
+        md->scene->addChild(ls);
+        md->scene->addChild(md->tw->worldScene);
     }
 
-    void DestoryThreePlugin(Plugin* p) {
-        delete reinterpret_cast<Shadow_Plugin*>(p);
+    Shadow::~Shadow() {
+        delete md;
     }
 
-    void Lighting(Plugin* plugin,bool enable) {
-        Shadow_Plugin* p =reinterpret_cast<Shadow_Plugin*>(plugin);
-        StateSet* ss = p->scene->getOrCreateStateSet();
+    void Shadow::Lighting(bool enable) {
+        StateSet* ss = md->scene->getOrCreateStateSet();
 
         if(enable) {
-            p->tw->initScene->replaceChild(p->tw->worldScene,p->scene);
-	    ss->setMode(GL_LIGHT1,StateAttribute::ON);
-	}
-        else {
-            p->tw->initScene->replaceChild(p->scene,p->tw->worldScene);
-	    ss->setMode(GL_LIGHT1,StateAttribute::OFF);
-	}
+            md->tw->initScene->replaceChild(md->tw->worldScene,md->scene);
+            ss->setMode(GL_LIGHT1,StateAttribute::ON);
+        } else {
+            md->tw->initScene->replaceChild(md->scene,md->tw->worldScene);
+            ss->setMode(GL_LIGHT1,StateAttribute::OFF);
+        }
     }
 }

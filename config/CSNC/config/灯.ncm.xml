@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CSNC>
-  <nodes>
-    <node description="" oid="" name="室内照明灯关" oid_desc=""/>
-    <node description="" oid="" name="室内照明灯开" oid_desc=""/>
-  </nodes>
-</CSNC>

@@ -3,6 +3,8 @@
 
 #include "three-widget_global.h"
 
+namespace ThreeQt {
+
 class ThreeWidget;
 class ThreeEarthWidget;
 
@@ -13,4 +15,8 @@ TW_LIBRARY void DestoryThreeWidget(ThreeWidget* tw);
 TW_LIBRARY ThreeEarthWidget* CreateThreeEarthWidget();
 TW_LIBRARY void DestoryThreeWidget(ThreeEarthWidget* tw);
 #endif
+
+}
 #endif // INTERFACES_H
+
+

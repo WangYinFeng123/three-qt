@@ -11,6 +11,8 @@
 #include <QMainWindow>
 #include <QTimer>
 
+using namespace ThreeQt;
+
 namespace Ui {
 class MainWindow;
 }
@@ -48,11 +50,11 @@ private slots:
 private:
     Ui::MainWindow *ui;
     ThreeWidget* tw;
-    Basic::Plugin* bp;
-    Animations::Plugin* ap;
-    Shadow::Plugin* sp;
-    Controls::Plugin* cp;
-    Observer::Plugin* op;
+    Basic* bp;
+    Animations* ap;
+    Shadow* sp;
+    Controls* cp;
+    Observer* op;
 };
 
 #endif // MAINWINDOW_H

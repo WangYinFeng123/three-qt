@@ -13,107 +13,145 @@ using namespace osgText;
 #include <osgAnimation/BasicAnimationManager>
 using namespace osgAnimation;
 
+#include <map>
 #include <set>
 using namespace std;
 
 #include <QSettings>
 
-namespace Animations {
-    struct Animations_Plugin {
+namespace ThreeQt {
+    struct Animations::Plugin {
         ThreeWidget* tw;
         ref_ptr<MatrixTransform> mtScene;
         ref_ptr<Node> scene;
     };
 
-    struct AnimationVisitor : public NodeVisitor {
-        BasicAnimationManager* am;
+    struct Animations::AnimationVisitor : public NodeVisitor {
+        map<string,BasicAnimationManager*> ams;
+
         AnimationVisitor() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
         virtual void apply(Node& node) {
-            am = dynamic_cast<BasicAnimationManager*>(node.getUpdateCallback());
-            if(NULL != am) return;
+            auto am = dynamic_cast<BasicAnimationManager*>(node.getUpdateCallback());
+            if(nullptr != am) ams[am->getName()] = am;
             traverse(node);
         }
     };
 
-    Plugin* CreateThreePlugin(ThreeWidget* tw) {
-        Animations_Plugin* p = new Animations_Plugin;
-        p->tw = tw;
-
-        return reinterpret_cast<Plugin*>(p);
+    Animations::Animations(ThreeWidget* tw) {
+        md = new Plugin;
+        md->tw = tw;
     }
 
-    void DestoryThreePlugin(Plugin* p) {
-        delete reinterpret_cast<Animations_Plugin*>(p);
+    Animations::~Animations() {
+        delete md;
     }
 
-    void TestAnimations(Plugin* plugin,bool enable) {
-        Animations_Plugin* p = reinterpret_cast<Animations_Plugin*>(plugin);
+    void Animations::TestAnimations(bool enable) {
         AnimationVisitor av;
-        p->tw->worldScene->accept(av);
-        cout << "[Animations] 动画管理器：" << av.am << endl;
-        if(av.am == NULL) return;
-        osgAnimation::AnimationList list = av.am->getAnimationList();
-        for(osgAnimation::AnimationList::iterator i=list.begin();list.end() != i;i++) {
-            if(enable) av.am->playAnimation(i->get());
-            else {
-                av.am->update(0);
-                av.am->stopAnimation(i->get());
+        md->tw->worldScene->accept(av);
+        cout << "[Animations] 动画管理器：" << av.ams.size() << endl;
+
+        for(auto kv : av.ams) {
+            osgAnimation::AnimationList list = kv.second->getAnimationList();
+            for(osgAnimation::AnimationList::iterator i=list.begin();list.end() != i;i++) {
+                if(enable) kv.second->playAnimation(i->get());
+                else {
+                    kv.second->update(0);
+                    kv.second->stopAnimation(i->get());
+                }
             }
         }
     }
 
-    void SetModelState(Plugin* plugin,string name,double value) {
-        Animations_Plugin* p = reinterpret_cast<Animations_Plugin*>(plugin);
+    void Animations::TestAnimation(string animationName,bool enable) {
         AnimationVisitor av;
-        p->tw->worldScene->accept(av);
-        if(NULL == av.am) return;
+        md->tw->worldScene->accept(av);
 
-        osgAnimation::AnimationList list = av.am->getAnimationList();
-        for(osgAnimation::AnimationList::iterator i=list.begin();list.end() != i;i++) {
-            if(i->get()->getName() != name) continue;
-            i->get()->update(value);
-        }
+        for(auto kv : av.ams) {
+            osgAnimation::AnimationList list = kv.second->getAnimationList();
+            ref_ptr<Animation> namedAnimation = new Animation;
+            namedAnimation->setName(animationName);
+            for(osgAnimation::AnimationList::iterator it=list.begin();list.end() != it;it++) {
+                ref_ptr<osgAnimation::Animation> ans = *it;
+                osgAnimation::ChannelList channels = ans->getChannels();
+                for(osgAnimation::ChannelList::iterator j =channels.begin();channels.end() != j;j++) {
+                    ref_ptr<osgAnimation::Channel> channel = *j;
+                    if(animationName == channel->getTargetName())
+                    {
+                        namedAnimation->addChannel(channel);
+                    }
+                }
+            }
 
-        ref_ptr<Animation> namedAnimation = new Animation;
-        namedAnimation->setName(name);
+          //  namedAnimation->setPlayMode(osgAnimation::Animation::STAY);
+          //  namedAnimation->setWeight(1.0);
+          //  namedAnimation->setStartTime(0);
 
-        for(osgAnimation::AnimationList::iterator it=list.begin();list.end() != it;it++) {
-            ref_ptr<osgAnimation::Animation> ans = *it;
-            osgAnimation::ChannelList channels = ans->getChannels();
-            for(osgAnimation::ChannelList::iterator j =channels.begin();channels.end() != j;j++) {
-                ref_ptr<osgAnimation::Channel> channel = *j;
-                if(name != channel->getTargetName()) continue;
-                namedAnimation->addChannel(channel);
+            if(enable)
+            {
+                kv.second->registerAnimation(namedAnimation);
+                kv.second->playAnimation(namedAnimation);
+                kv.second->unregisterAnimation(namedAnimation);
+            }
+            else{
+                kv.second->stopAll();
             }
         }
-
-        namedAnimation->setWeight(1.0);
-        namedAnimation->setStartTime(0);
-        namedAnimation->update(value);
     }
 
-    set<string> Animations(Plugin* plugin) {
-        Animations_Plugin* p = reinterpret_cast<Animations_Plugin*>(plugin);
+    void Animations::SetModelState(string name,double value) {
         AnimationVisitor av;
-        p->tw->worldScene->accept(av);
+        md->tw->worldScene->accept(av);
+
+        for(auto kv : av.ams) {
+            osgAnimation::AnimationList list = kv.second->getAnimationList();
+            for(osgAnimation::AnimationList::iterator i=list.begin();list.end() != i;i++) {
+                if(i->get()->getName() != name) continue;
+                i->get()->update(value);
+            }
+
+            ref_ptr<Animation> namedAnimation = new Animation;
+            namedAnimation->setName(name);
+
+            for(osgAnimation::AnimationList::iterator it=list.begin();list.end() != it;it++) {
+                ref_ptr<osgAnimation::Animation> ans = *it;
+                osgAnimation::ChannelList channels = ans->getChannels();
+                for(osgAnimation::ChannelList::iterator j =channels.begin();channels.end() != j;j++) {
+                    ref_ptr<osgAnimation::Channel> channel = *j;
+                    if(name != channel->getTargetName()) continue;
+                    namedAnimation->addChannel(channel);
+                }
+            }
+
+            namedAnimation->setWeight(1.0);
+            namedAnimation->setStartTime(0);
+            namedAnimation->update(value);
+        }
+    }
+
+    set<string> Animations::AnimationNames(string modelName) {
+        AnimationVisitor av;
+        md->tw->worldScene->accept(av);
 
         set<string> names;
-        if(NULL == av.am) return names;
+        for(auto kv : av.ams) {
+            if(modelName == kv.first) continue;
+            cout << kv.first << endl;
 
-        osgAnimation::AnimationList animations = av.am->getAnimationList();
-        for(osgAnimation::AnimationList::iterator i=animations.begin();animations.end()!=i;i++) {
-            osgAnimation::Animation* a=*i;
-            osgAnimation::ChannelList channels = a->getChannels();
-            for(osgAnimation::ChannelList::iterator j=channels.begin();channels.end()!=j;j++) {
-                osgAnimation::Channel* c = *j;
-                std::string name = c->getTargetName();
-                if(names.end() != names.find(name)) continue;
-                names.insert(name);
-                std::cout << "动画：" << name << std::endl;
+            osgAnimation::AnimationList animations = kv.second->getAnimationList();
+            for(osgAnimation::AnimationList::iterator i=animations.begin();animations.end()!=i;i++) {
+                osgAnimation::Animation* a=*i;
+                osgAnimation::ChannelList channels = a->getChannels();
+                for(osgAnimation::ChannelList::iterator j=channels.begin();channels.end()!=j;j++) {
+                    osgAnimation::Channel* c = *j;
+                    std::string name = c->getTargetName();
+                    if(names.end() != names.find(name)) continue;
+                    names.insert(name);
+                    std::cout << "动画：" << name << std::endl;
+                }
             }
         }
 
         return names;
     }
 }
-

@@ -1,5 +1,6 @@
 #include "threewidget.h"
 #include "threemanipulator.h"
+
 using osgViewer::ViewerBase;
 
 #include <osg/Viewport>
@@ -16,6 +17,8 @@ using namespace std;
 #include <QSettings>
 #include <QMouseEvent>
 #include <QKeyEvent>
+
+using namespace ThreeQt;
 
 #if defined(QOPENGLWIDGET)
 ThreeWidget::ThreeWidget(QWidget* parent) : QOpenGLWidget (parent)
