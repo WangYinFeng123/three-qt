@@ -40,7 +40,6 @@ bool isBasicRootNode(const osg::Node& node)
     if (!osgGroup || node.asGeode())        // WriterNodeVisitor handles Geodes the "old way" (= Derived from Node, not Group as for now). Geodes may be considered "basic root nodes" when WriterNodeVisitor will be adapted.
     {
         // Geodes & such are not basic root nodes
-        OSG_WARN << "Geodes & such are not basic root nodes" << std::endl;
         return false;
     }
 
@@ -53,7 +52,6 @@ bool isBasicRootNode(const osg::Node& node)
             if (!matrixTransform->getMatrix().isIdentity())
             {
                 // Non-identity matrix transform
-        OSG_WARN << "Non-identity matrix transform" << std::endl;
                 return false;
             }
         }
@@ -65,14 +63,12 @@ bool isBasicRootNode(const osg::Node& node)
                 pat->getPivotPoint() != osg::Vec3d())
             {
                 // Non-identity position attribute transform
-        OSG_WARN << "Non-identity position attribute transform" << std::endl;
                 return false;
             }
         }
         else
         {
             // Other transform (not identity or not predefined type)
-	    OSG_WARN << "Other transform (not identity or not predefined type)" << std::endl;
             return false;
         }
     }
@@ -83,7 +79,6 @@ bool isBasicRootNode(const osg::Node& node)
         osg::ref_ptr<osg::StateSet> emptyStateSet = new osg::StateSet;
         if (node.getStateSet()->compare(*emptyStateSet, true) != 0)
         {
-        OSG_WARN << "Test the presence of a non-empty stateset" << std::endl;
             return false;
         }
     }
@@ -254,7 +249,6 @@ ReaderWriterFBX::readNode(const std::string& filenameInit,
             lTakeInfo->mSelect = true;
         }
 
-
         if (!lImporter->Import(pScene))
         {
 #if FBXSDK_VERSION_MAJOR < 2014
@@ -343,6 +337,7 @@ ReaderWriterFBX::readNode(const std::string& filenameInit,
                     }
                 }
             }
+
 
             OsgFbxReader reader(*pSdkManager,
                 *pScene,
@@ -455,7 +450,7 @@ ReaderWriterFBX::readNode(const std::string& filenameInit,
                     osgNode = pMatrixTransform;
                 }
 
-                osgNode->setName(osgDB::convertStringFromCurrentCodePageToUTF8(filenameInit));
+                osgNode->setName(filenameInit);
                 return osgNode;
             }
         }
@@ -504,7 +499,7 @@ osgDB::ReaderWriter::WriteResult ReaderWriterFBX::writeNode(
             {
                 if (opt == "Embedded")
                 {
-                    pSdkManager->GetIOSettings()->SetBoolProp(EXP_FBX_EMBEDDED,true);
+                    pSdkManager->GetIOSettings()->SetBoolProp(EXP_FBX_EMBEDDED, true);
                 }
                 else if (opt == "UseFbxRoot")
                 {
@@ -537,7 +532,6 @@ osgDB::ReaderWriter::WriteResult ReaderWriterFBX::writeNode(
             options, osgDB::getFilePath(node.getName().empty() ? filename : node.getName()));
         if (useFbxRoot && isBasicRootNode(node))
         {
-            OSG_WARN << "UseFbxRoot" << std::endl;
             // If root node is a simple group, put all elements under the FBX root
             const osg::Group * osgGroup = node.asGroup();
             for (unsigned int child = 0; child < osgGroup->getNumChildren(); ++child)
@@ -593,9 +587,8 @@ osgDB::ReaderWriter::WriteResult ReaderWriterFBX::writeNode(
         //Motion Analysis HTR (*.htr)
         //Motion Analysis TRC (*.trc)
         //Acclaim ASF (*.asf)
-
         int format = ascii ? pSdkManager->GetIOPluginRegistry()->FindWriterIDByDescription("FBX ascii (*.fbx)") : -1;        // -1 = Default
-        if (!lExporter->Initialize(utf8filename.c_str(), format, pSdkManager->GetIOSettings()))
+        if (!lExporter->Initialize(utf8filename.c_str(), format))
         {
 #if FBXSDK_VERSION_MAJOR < 2014
             return std::string(lExporter->GetLastErrorString());

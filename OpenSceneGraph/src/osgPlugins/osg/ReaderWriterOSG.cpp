@@ -369,6 +369,7 @@ class OSGReaderWriter : public ReaderWriter
             if (fout)
             {
                 loadWrappers();
+
                 fout.setOptions(options);
 
                 fout.imbue(std::locale::classic());

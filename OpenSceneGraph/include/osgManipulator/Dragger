@@ -145,6 +145,7 @@ class OSGMANIPULATOR_EXPORT PointerInfo
                 osg::Vec3d eye, center, up;
                 camera->getViewMatrix().getLookAt(eye, center, up);
                 _eyeDir = eye - center;
+
             }
             else
             {

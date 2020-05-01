@@ -216,10 +216,6 @@ FbxMaterialToOsgStateSet::convert(const FbxSurfaceMaterial* pFbxMat)
     return result;
 }
 
-#ifdef WIN32
-#include <osgDB/ConvertUTF>
-#endif
-
 osg::ref_ptr<osg::Texture2D>
 FbxMaterialToOsgStateSet::fbxTextureToOsgTexture(const FbxFileTexture* fbx)
 {
@@ -230,15 +226,9 @@ FbxMaterialToOsgStateSet::fbxTextureToOsgTexture(const FbxFileTexture* fbx)
 
     // Warning: fbx->GetRelativeFileName() is relative TO EXECUTION DIR
     //          fbx->GetFileName() is as stored initially in the FBX
-#ifdef WIN32
-    if ((pImage = osgDB::readRefImageFile(osgDB::convertStringFromUTF8toCurrentCodePage(osgDB::concatPaths( _dir, fbx->GetFileName())), _options)) ||                // First try "export dir/name"
-        (pImage = osgDB::readRefImageFile(osgDB::convertStringFromUTF8toCurrentCodePage(fbx->GetFileName()), _options)) ||                                        // Then try  "name" (if absolute)
-        (pImage = osgDB::readRefImageFile(osgDB::convertStringFromUTF8toCurrentCodePage(osgDB::concatPaths(_dir, fbx->GetRelativeFileName())), _options)))        // Else try  "current dir/name"
-#else
     if ((pImage = osgDB::readRefImageFile(osgDB::concatPaths(_dir, fbx->GetFileName()), _options)) ||                // First try "export dir/name"
         (pImage = osgDB::readRefImageFile(fbx->GetFileName(), _options)) ||                                        // Then try  "name" (if absolute)
         (pImage = osgDB::readRefImageFile(osgDB::concatPaths(_dir, fbx->GetRelativeFileName()), _options)))        // Else try  "current dir/name"
-#endif
     {
         osg::ref_ptr<osg::Texture2D> pOsgTex = new osg::Texture2D;
         pOsgTex->setImage(pImage.get());

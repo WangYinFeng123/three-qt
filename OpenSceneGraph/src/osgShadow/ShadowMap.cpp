@@ -374,6 +374,7 @@ void ShadowMap::cull(osgUtil::CullVisitor& cv)
                 lightpos = light->getPosition();
                 lightDir = light->getDirection();
             }
+
         }
     }
 

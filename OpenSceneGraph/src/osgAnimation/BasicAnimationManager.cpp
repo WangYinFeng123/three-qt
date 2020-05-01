@@ -76,6 +76,7 @@ bool BasicAnimationManager::stopAnimation(Animation* pAnimation)
     return false;
 }
 
+
 void BasicAnimationManager::update (double time)
 {
     _lastUpdate = time; // keep time of last update

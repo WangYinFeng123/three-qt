@@ -1,6 +1,3 @@
-SET(CMAKE_C_COMPILER "/usr/bin/gcc") 
-SET(CMAKE_C_COMPILER "/usr/bin/gcc") 
-
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -628,7 +625,7 @@ ENDIF()
 # Optional build components
 
 # OSG Applications
-OPTION(BUILD_OSG_APPLICATIONS "Enable to build OSG Applications (e.g. osgviewer)" OFF)
+OPTION(BUILD_OSG_APPLICATIONS "Enable to build OSG Applications (e.g. osgviewer)" ON)
 
 # OSG Examples
 OPTION(BUILD_OSG_EXAMPLES "Enable to build OSG Examples" OFF)

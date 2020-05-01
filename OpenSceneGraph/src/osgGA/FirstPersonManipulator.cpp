@@ -306,6 +306,7 @@ bool FirstPersonManipulator::performMovementLeftMouseButton( const double /*even
    return true;
 }
 
+
 bool FirstPersonManipulator::performMouseDeltaMovement( const float dx, const float dy )
 {
    // rotate camera

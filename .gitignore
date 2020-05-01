@@ -4,6 +4,8 @@ build-three-editor-Desktop-Debug/
 three-test/moc_mainwindow.cpp
 three-test/moc_predefs.h
 three-test/ui_mainwindow.h
+OpenSceneGraph-3.4.1
+OpenSceneGraph-3.4.1.zip
 
 *.*.user
 JsonCpp/JsonCpp.pro.user

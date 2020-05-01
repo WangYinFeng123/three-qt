@@ -200,7 +200,7 @@ std::string Output::getFileNameForOutput(const std::string& filename) const
     case(RELATIVE_PATH):
         {
             // need to think about how best to implement this as well...
-            OSG_WARN << "Warning: Output::getFileNameForOutput() does not support RELATIVE_PATH yet." << std::endl;
+            OSG_WARN<<"Warning: Output::getFileNameForOutput() does not support RELATIVE_PATH yet."<< std::endl;
             return filename;
         }
     case(FILENAME_ONLY):

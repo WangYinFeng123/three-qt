@@ -1,8 +1,3 @@
-3rdParty_x64/
-build/
-build-*/
-3rdParty_VC10_x86_x64/
-
 doc/all_Doxyfile
 doc/auto_Doxyfile
 doc/core_Doxyfile
