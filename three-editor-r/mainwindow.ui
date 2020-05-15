@@ -24,7 +24,7 @@
      <x>0</x>
      <y>0</y>
      <width>913</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -56,6 +56,9 @@
     <addaction name="separator"/>
     <addaction name="action_remove"/>
     <addaction name="action_copy"/>
+    <addaction name="separator"/>
+    <addaction name="action_group"/>
+    <addaction name="action_ungroup"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_3"/>
@@ -159,7 +162,7 @@
           <x>0</x>
           <y>0</y>
           <width>318</width>
-          <height>357</height>
+          <height>370</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -611,6 +614,28 @@
   <action name="action_unlockPath">
    <property name="text">
     <string>解锁路径</string>
+   </property>
+  </action>
+  <action name="action_group">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>打组</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
+   </property>
+  </action>
+  <action name="action_ungroup">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>解组</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+G</string>
    </property>
   </action>
  </widget>

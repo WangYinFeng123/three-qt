@@ -1,11 +1,8 @@
-run-king-client/
-run-king/
-build-three-editor-Desktop-Debug/
 three-test/moc_mainwindow.cpp
 three-test/moc_predefs.h
 three-test/ui_mainwindow.h
-OpenSceneGraph-3.4.1
 OpenSceneGraph-3.4.1.zip
+3rdParty_VS2017_v141_x64_V11_small.7z
 
 *.*.user
 JsonCpp/JsonCpp.pro.user

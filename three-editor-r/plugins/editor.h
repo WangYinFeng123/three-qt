@@ -28,7 +28,8 @@ public:
     Editor(ThreeWidget*);
     ~Editor();
     ThreeWidget* owner();
-
+    string group(set<string> names,unsigned int mask); //未实现
+    set<string> ungroup(string name);                  //未实现
     void sceneOpen(string scenePath) throw (exception);
     void sceneSave(string scenePath) throw (exception);
     void sceneExport(string scenePath) throw (exception);
@@ -56,7 +57,7 @@ public:
     string lineDraw(vec3 beginPos,vec3 endPos);
 
 protected:
-    string modelName(unsigned long long seed);
+    string modelName(unsigned long long seed,string type = "Model");
     bool modelNameRepeat(string name);
 
 protected:

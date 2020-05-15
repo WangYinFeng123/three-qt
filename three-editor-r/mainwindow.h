@@ -39,7 +39,7 @@ public:
     shared_ptr<ThreeQt::Picker> pip;
 
     QString filePath;
-
+    string nameOfPosChanged;
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -68,10 +68,10 @@ private slots:
     void on_action_redo_triggered();
     void on_action_remove_triggered();
     void on_action_copy_triggered();
-
     void on_action_lockPath_triggered();
-
     void on_action_unlockPath_triggered();
+    void on_action_group_triggered();
+    void on_action_ungroup_triggered();
 
 private:
     Ui::MainWindow *ui;

@@ -89,6 +89,67 @@ Editor::~Editor() {
 
 ThreeWidget* Editor::owner() { return md->tw; }
 
+string Editor::group(set<string> names,unsigned int mask) {
+    auto axisModel = new PositionAttitudeTransform;
+    list<PositionAttitudeTransform*> outMts;
+    for(unsigned int i=0;i < md->scene->getNumChildren();) {
+        auto outMt = md->scene->getChild(i);
+        cout << i << endl;
+
+        if(names.end() == names.find(outMt->getName())) {
+            i++;
+            continue;
+        }
+
+        axisModel->addChild(outMt);
+        outMts.push_back(dynamic_cast<PositionAttitudeTransform*>(outMt));
+        md->scene->removeChild(i);
+    }
+
+    auto c = axisModel->getBound().center();
+    c.z() = 0;
+    axisModel->setPivotPoint(c);
+
+    auto mtModel = new PositionAttitudeTransform;
+    mtModel->setPosition(c);
+
+    auto name = modelName(reinterpret_cast<unsigned long long>(mtModel),"Group");
+    mtModel->addChild(axisModel);
+    mtModel->setName(name);
+    mtModel->setNodeMask(mask);
+
+    md->scene->addChild(mtModel);
+    return name;
+}
+
+set<string> Editor::ungroup(string name) {
+    Finder nv; nv.inName = name; md->scene->accept(nv);
+    if(-1 == name.find("\nEditor::Group")) return {};
+    if(nullptr == nv.outMt) throw exception("failed to ungroup model because the name not found!");
+
+    auto mtModel = nv.outMt;
+    auto axisModel = dynamic_cast<PositionAttitudeTransform*>(nv.outMt->getChild(0));
+
+    auto pivotPoint = axisModel->getPivotPoint();
+    auto offset = mtModel->getPosition() - pivotPoint;
+    auto degrees = mtModel->getAttitude();
+
+    set<string> names;
+    for(unsigned int i=0;i < axisModel->getNumChildren();i++) {
+        auto mt = dynamic_cast<PositionAttitudeTransform*>(axisModel->getChild(i));
+
+        auto pos = mt->getPosition() + offset;
+        mt->setPosition(pos);
+        mt->setAttitude(degrees);
+
+        md->scene->addChild(mt);
+        names.insert(mt->getName());
+    }
+
+    md->scene->removeChild(mtModel);
+    return names;
+}
+
 void Editor::sceneOpen(string scenePath) throw(exception) {
     auto scene = readRefNodeFile(scenePath);
     if(!scene.valid()) throw exception("failed to open scene!");
@@ -114,14 +175,14 @@ bool Editor::modelNameRepeat(string name) {
     return nullptr != nv.outMt;
 }
 
-string Editor::modelName(unsigned long long seed) {
+string Editor::modelName(unsigned long long seed,string type) {
     string name;
 
     do {
         stringstream fmt;
         fmt << "model" << endl
             << hex << seed++ << endl
-            << "Editor::Model";
+            << "Editor::" << type;
         name = fmt.str();
     } while(modelNameRepeat(name));
 
@@ -129,9 +190,17 @@ string Editor::modelName(unsigned long long seed) {
 }
 
 string Editor::modelAdd(string modelPath,unsigned int mask) throw(exception) {
+    struct ClearNames : public NodeVisitor {
+        ClearNames() : NodeVisitor(TRAVERSE_ALL_CHILDREN) {}
+        virtual void apply(MatrixTransform& node) {
+            node.setName("");
+            traverse(node);
+        }
+    }cn;
+
     auto model = readRefNodeFile(modelPath);
     if(!model.valid()) throw exception("failed to add model because the file not read!");
-    model->setName("");
+    model->accept(cn);
     auto name = modelName(reinterpret_cast<unsigned long long>(&model));
     auto axisModel = new PositionAttitudeTransform;
     axisModel->addChild(model);
@@ -257,7 +326,7 @@ tuple<string,vec3,vec3> Editor::intersect(vec2 xy, unsigned int mask) {
     for(auto li : lis) {
         auto np = li.nodePath;
         for(auto n : np) {
-            if(string::npos == n->getName().find("\nEditor::Model")) continue;
+            if(string::npos == n->getName().find("\nEditor::")) continue;
             name = n->getName();
             break;
         }
@@ -285,7 +354,7 @@ tuple<string,vec3,vec3> Editor::intersectWithVertex(vec2 xy, unsigned int mask) 
     for(auto li : lis) {
         auto np = li.nodePath;
         for(auto n : np) {
-            if(string::npos == n->getName().find("\nEditor::Model")) continue;
+            if(string::npos == n->getName().find("\nEditor::")) continue;
             name = n->getName();
             break;
         }
@@ -335,7 +404,7 @@ set<string> Editor::planeIntersect(vec2 lt,vec2 rd,unsigned int mask) {
             NodePath np = li.nodePath;
             for(auto n : np) {
                 auto name = n->getName();
-                if(string::npos == name.find("\nEditor::Model")) continue;
+                if(string::npos == name.find("\nEditor::")) continue;
                 names.insert(name);
                 break;
             }

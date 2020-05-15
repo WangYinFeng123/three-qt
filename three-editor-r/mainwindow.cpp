@@ -45,6 +45,8 @@ MainWindow::MainWindow(QWidget *parent)
     sp->lighting(true);
 
     rp->snapshot();
+
+
 }
 
 MainWindow::~MainWindow()
@@ -102,15 +104,16 @@ void MainWindow::importModels(QString url) {
 
 void MainWindow::setModelEventHandler(decltype(pip) pip) {
     pip->setPickedEventHandler([this](set<string> names) {
-        disconnect(ui->doubleSpinBox_horizontalDegrees,SIGNAL(valueChanged(double)));
-        disconnect(ui->doubleSpinBox_xRatio,SIGNAL(valueChanged(double)));
-        disconnect(ui->doubleSpinBox_yRatio,SIGNAL(valueChanged(double)));
-        disconnect(ui->doubleSpinBox_zRatio,SIGNAL(valueChanged(double)));
-        disconnect(ui->doubleSpinBox_xPos,SIGNAL(valueChanged(double)));
-        disconnect(ui->doubleSpinBox_yPos,SIGNAL(valueChanged(double)));
-        disconnect(ui->doubleSpinBox_zPos,SIGNAL(valueChanged(double)));
+        disconnect(ui->doubleSpinBox_horizontalDegrees,SIGNAL(valueChanged(double)),this,SLOT(on_doubleSpinBox_horizontalDegrees_valueChanged(double)));
+        disconnect(ui->doubleSpinBox_xRatio,SIGNAL(valueChanged(double)),this,SLOT(on_doubleSpinBox_xRatio_valueChanged(double)));
+        disconnect(ui->doubleSpinBox_yRatio,SIGNAL(valueChanged(double)),this,SLOT(on_doubleSpinBox_yRatio_valueChanged(double)));
+        disconnect(ui->doubleSpinBox_zRatio,SIGNAL(valueChanged(double)),this,SLOT(on_doubleSpinBox_zRatio_valueChanged(double)));
+        disconnect(ui->doubleSpinBox_xPos,SIGNAL(valueChanged(double)),this,SLOT(on_doubleSpinBox_xPos_valueChanged(double)));
+        disconnect(ui->doubleSpinBox_yPos,SIGNAL(valueChanged(double)),this,SLOT(on_doubleSpinBox_yPos_valueChanged(double)));
+        disconnect(ui->doubleSpinBox_zPos,SIGNAL(valueChanged(double)),this,SLOT(on_doubleSpinBox_zPos_valueChanged(double)));
 
         if(0 == names.size()) { //没有选中
+            nameOfPosChanged = "";
             ui->doubleSpinBox_horizontalDegrees->setDisabled(true);
             ui->doubleSpinBox_xRatio->setDisabled(true);
             ui->doubleSpinBox_yRatio->setDisabled(true);
@@ -120,6 +123,7 @@ void MainWindow::setModelEventHandler(decltype(pip) pip) {
             ui->doubleSpinBox_zPos->setDisabled(true);
             ui->checkBox_scaleAll->setDisabled(true);
         } else if(1 == names.size()) { //选中1个
+            nameOfPosChanged = *names.begin();
             auto name = *names.begin();
             auto r = ep->modelRotate(name);
             auto s = ep->modelScale(name);
@@ -143,14 +147,19 @@ void MainWindow::setModelEventHandler(decltype(pip) pip) {
             ui->checkBox_scaleAll->setEnabled(true);
 
         } else { //选中多个
-            ui->doubleSpinBox_horizontalDegrees->setDisabled(true);
-            ui->doubleSpinBox_xRatio->setDisabled(true);
-            ui->doubleSpinBox_yRatio->setDisabled(true);
-            ui->doubleSpinBox_zRatio->setDisabled(true);
-            ui->doubleSpinBox_xPos->setDisabled(true);
-            ui->doubleSpinBox_yPos->setDisabled(true);
-            ui->doubleSpinBox_zPos->setDisabled(true);
-            ui->checkBox_scaleAll->setDisabled(true);
+            for(auto name : names) {
+                nameOfPosChanged += nameOfPosChanged.empty() ? "" : ";";
+                nameOfPosChanged += name;
+            }
+
+            ui->doubleSpinBox_horizontalDegrees->setEnabled(true);
+            ui->doubleSpinBox_xRatio->setEnabled(true);
+            ui->doubleSpinBox_yRatio->setEnabled(true);
+            ui->doubleSpinBox_zRatio->setEnabled(true);
+            ui->doubleSpinBox_xPos->setEnabled(true);
+            ui->doubleSpinBox_yPos->setEnabled(true);
+            ui->doubleSpinBox_zPos->setEnabled(true);
+            ui->checkBox_scaleAll->setEnabled(true);
         }
 
         connect(ui->doubleSpinBox_horizontalDegrees,SIGNAL(valueChanged(double)),SLOT(on_doubleSpinBox_horizontalDegrees_valueChanged(double)));
@@ -163,10 +172,12 @@ void MainWindow::setModelEventHandler(decltype(pip) pip) {
     });
 
     static bool changed = false;
-    pip->setChangedEventHandler([&](pair<string,string> name,ThreeQt::vec3 pos) {
+    pip->setChangedEventHandler([&](string name,ThreeQt::vec3 pos) {
+        nameOfPosChanged = name;
         if(!ui->checkBox_xPosLocked->isChecked()) ui->doubleSpinBox_xPos->setValue(get<0>(pos) / 1000);
         if(!ui->checkBox_yPosLocked->isChecked()) ui->doubleSpinBox_yPos->setValue(get<1>(pos) / 1000);
         if(!ui->checkBox_zPosLocked->isChecked()) ui->doubleSpinBox_zPos->setValue(get<2>(pos) / 1000);
+
         changed = true;
     });
 
@@ -189,7 +200,10 @@ void MainWindow::on_action_exportScene_triggered()
     if(url == ".obj") return;
 
     try {
+        try { while(true) ep->modelRemove("line",false); } catch(...) {} //线段不兼容
+        rp->snapshot();
         ep->sceneExport(url.toLocal8Bit().data());
+        rp->restore();
     } catch(...) {
         QMessageBox::information(nullptr,"Three Qt Editor","Failed export scene to obj file!");
         return;
@@ -396,39 +410,32 @@ void MainWindow::on_doubleSpinBox_zRatio_valueChanged(double z)
 void MainWindow::on_doubleSpinBox_horizontalDegrees_valueChanged(double arg1)
 {
     for(auto kv : pip->picks()) {
-        ep->modelRotate(kv.first,{0,0,1},arg1);
-        pip->modelRotate(kv.second,{0,0,1},arg1);
+        pip->modelRotate(kv.first,{0,0,1},arg1);
     }
 }
 
 void MainWindow::on_doubleSpinBox_xPos_valueChanged(double x)
 {
-    for(auto kv : pip->picks()) {
-        ep->modelTrans(kv.first,{x * 1000,ui->doubleSpinBox_yPos->value() * 1000,ui->doubleSpinBox_zPos->value() * 1000});
-        pip->modelTrans(kv.second,{x * 1000,ui->doubleSpinBox_yPos->value() * 1000,ui->doubleSpinBox_zPos->value() * 1000});
-    }
+    pip->modelTrans(nameOfPosChanged,{x * 1000,ui->doubleSpinBox_yPos->value() * 1000,ui->doubleSpinBox_zPos->value() * 1000});
 }
 
 void MainWindow::on_doubleSpinBox_yPos_valueChanged(double y) {
-    for(auto kv : pip->picks()) {
-        ep->modelTrans(kv.first,{ui->doubleSpinBox_xPos->value() * 1000,y * 1000,ui->doubleSpinBox_zPos->value() * 1000});
-        pip->modelTrans(kv.second,{ui->doubleSpinBox_xPos->value() * 1000,y * 1000,ui->doubleSpinBox_zPos->value() * 1000});
-    }
+    pip->modelTrans(nameOfPosChanged,{ui->doubleSpinBox_xPos->value() * 1000,y * 1000,ui->doubleSpinBox_zPos->value() * 1000});
 }
 
 void MainWindow::on_doubleSpinBox_zPos_valueChanged(double z) {
-    for(auto kv : pip->picks()) {
-        ep->modelTrans(kv.first,{ui->doubleSpinBox_xPos->value() * 1000,ui->doubleSpinBox_yPos->value() * 1000,z * 1000});
-        pip->modelTrans(kv.second,{ui->doubleSpinBox_xPos->value() * 1000,ui->doubleSpinBox_yPos->value() * 1000,z * 1000});
-    }
+    pip->modelTrans(nameOfPosChanged,{ui->doubleSpinBox_xPos->value() * 1000,ui->doubleSpinBox_yPos->value() * 1000,z * 1000});
 }
 
 void MainWindow::on_action_remove_triggered() {
+    if(!pip) return;
     for(auto kv : pip->picks()) {
         ep->modelRemove(kv.first);
     }
 
     pip->clear();
+
+    if(!pip->picks().empty()) rp->snapshot();
 }
 
 void MainWindow::on_action_copy_triggered() {
@@ -469,4 +476,20 @@ void MainWindow::on_action_unlockPath_triggered()
         if(-1 != name.find("line") || -1 != name.find("nc_xunjianzuobiao"))
             ep->modelMask(name,0b010);
     }
+}
+
+void MainWindow::on_action_group_triggered()
+{
+    set<string> names;
+    for(auto kv : pip->picks()) names.insert(kv.first);
+    ui->action_cancel->activate(QAction::Trigger);
+    ep->group(names,0b010);
+}
+
+void MainWindow::on_action_ungroup_triggered()
+{
+    set<string> names;
+    for(auto kv : pip->picks()) names.insert(kv.first);
+    ui->action_cancel->activate(QAction::Trigger);
+    for(auto name : names) ep->ungroup(name);
 }

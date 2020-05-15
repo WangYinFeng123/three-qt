@@ -58,7 +58,7 @@ struct Picker::Plugin {
     Picker* pip;
     ref_ptr<Group> picks;
     function<void(set<string> name)> pickedEventHandler;
-    function<void(pair<string,string> name,vec3 pos)> changedEventHandler;
+    function<void(string name,vec3 pos)> changedEventHandler;
     function<void()> changedFinishedEventHandler;
 
     //当前模式
@@ -86,7 +86,7 @@ struct Picker::Plugin {
                 if(pressed) {
                     currentMode = "absorbable";
                 } else {
-                    pip->modelRemove(absorptionName);
+                    pip->pickRemove(absorptionName);
                     currentMode = "";
                 }
 
@@ -110,7 +110,7 @@ struct Picker::Plugin {
 
     function<void(vec2 xy)> mouseOverHandler() {
         return [&](vec2 xy) {
-            pip->modelRemove(absorptionName);
+            pip->pickRemove(absorptionName);
             absorptionName = "";
 
             auto it = ep->intersectWithVertex(xy,0b10);
@@ -143,17 +143,19 @@ struct Picker::Plugin {
                         auto s = ep->modelScale(namePointed);
                         auto radius = ep->modelBound(namePointed).second;
                         auto pickName = namePointed;
-                        pickName.erase(pickName.find("\nEditor::Model"), string::npos);
+                        pickName.erase(pickName.find("\nEditor::"), string::npos);
                         pickName = pickName + "\nPicker::Model";
                         pip->pickDraw(pickName,pos,radius);
-                        pip->modelRotate(pickName,get<0>(r),get<1>(r));
-                        pip->modelScale(pickName,s);
+                        pip->pickRotate(pickName,get<0>(r),get<1>(r));
+                        pip->pickScale(pickName,s);
 
                         modelNamesPicked.insert({namePointed,pickName}); //选中当前物体
 
                         //发送选择事件
                         set<string> names;
-                        for(auto kv : modelNamesPicked) names.insert(kv.first);
+                        for(auto kv : modelNamesPicked)
+                            names.insert(kv.first);
+
                         if(pickedEventHandler) pickedEventHandler(names);
 
                         absorbing = absorbable;
@@ -162,7 +164,7 @@ struct Picker::Plugin {
                         absorbing = absorbable; //判断是否吸附
 
                         if(additional) { //如果是附加选择模式，则取消选择
-                            pip->modelRemove(modelNamesPicked[namePointed]);
+                            pip->pickRemove(modelNamesPicked[namePointed]);
                             modelNamesPicked.erase(namePointed);
                         }
                     }
@@ -192,9 +194,9 @@ struct Picker::Plugin {
                                     get<2>(modelPos) + get<2>(offset)
                                 };
 
+                                if(changedEventHandler) changedEventHandler(kv.first,modelPos);
                                 //ep->modelTrans(kv.first,modelPos);
                                 //pip->modelTrans(kv.second,modelPos);
-                                if(changedEventHandler) changedEventHandler({kv.first,kv.second},modelPos);
                             }
 
                             beginPosAbsorbed = end;
@@ -211,9 +213,9 @@ struct Picker::Plugin {
                                     get<2>(modelPos) + get<2>(offset)
                                 };
 
-                                //ep->modelTrans(kv.first,modelPos);
-                                //pip->modelTrans(kv.second,modelPos);
-                                if(changedEventHandler) changedEventHandler({kv.first,kv.second},modelPos);
+                                if(changedEventHandler) changedEventHandler(kv.first,modelPos);
+//                              ep->modelTrans(kv.first,modelPos);
+//                              pip->modelTrans(kv.second,modelPos);
                             }
                         }
                     }
@@ -241,7 +243,7 @@ struct Picker::Plugin {
                         auto modelNamesIntersected = ep->planeIntersect(leftTop,xy,0b10);
                         for(auto namePointed : modelNamesIntersected) {
                             if(modelNamesPicked.end() != modelNamesPicked.find(namePointed)) {
-                                pip->modelRemove(modelNamesPicked[namePointed]); //取消选择
+                                pip->pickRemove(modelNamesPicked[namePointed]); //取消选择
                                 modelNamesPicked.erase(namePointed);
                                 continue;
                             }
@@ -252,11 +254,11 @@ struct Picker::Plugin {
                             auto s = ep->modelScale(namePointed);
                             auto radius = ep->modelBound(namePointed).second;
                             auto pickName = namePointed;
-                            pickName.erase(pickName.find("\nEditor::Model"), string::npos);
+                            pickName.erase(pickName.find("\nEditor::"), string::npos);
                             pickName = pickName + "\nPicker::Model";
                             pip->pickDraw(pickName,pos,radius);
-                            pip->modelRotate(pickName,get<0>(r),get<1>(r));
-                            pip->modelScale(pickName,s);
+                            pip->pickRotate(pickName,get<0>(r),get<1>(r));
+                            pip->pickScale(pickName,s);
                             modelNamesPicked.insert({namePointed,pickName}); //选中当前物体
                         }
 
@@ -358,7 +360,7 @@ void Picker::setPickedEventHandler(function<void(set<string> name)> f) {
     md->pickedEventHandler = f;
 }
 
-void Picker::setChangedEventHandler(function<void(pair<string,string> name,vec3 pos)> f) {
+void Picker::setChangedEventHandler(function<void(string name,vec3 pos)> f) {
     md->changedEventHandler = f;
 }
 
@@ -366,39 +368,64 @@ void Picker::setChangedFinishedEventHandler(function<void()> f) {
     md->changedFinishedEventHandler = f;
 }
 
-void Picker::modelTrans(string name,vec3 pos) {
-    Finder nv; nv.inName = name; md->picks->accept(nv);
-    if(nullptr == nv.outMt) throw exception("failed to transform the model because the name not found`!");
-    nv.outMt->setPosition({ get<0>(pos), get<1>(pos), get<2>(pos)} );
+void Picker::modelTrans(string name,vec3 pos) throw(exception) {
+    md->ep->modelTrans(name,pos);
+    auto pickName = md->modelNamesPicked.at(name);
+    pickTrans(pickName,pos);
 }
 
-void Picker::modelScale(string name,vec3 ratio) throw(exception) {}
+void Picker::modelScale(string name,vec3 ratio) throw(exception) {
+    md->ep->modelTrans(name,ratio);
+    auto pickName = md->modelNamesPicked.at(name);
+    pickScale(pickName,ratio);
+}
 
 void Picker::modelAxis(string name,vec3 axis,double degrees) throw (exception) {
-    Finder nv; nv.inName = name; md->picks->accept(nv);
-    if(nullptr == nv.outMt) throw exception("failed to rotate the model because the name not found!");
-    nv.outMt = dynamic_cast<PositionAttitudeTransform*>(nv.outMt->getChild(0));
-    nv.outMt->setAttitude({ DegreesToRadians(degrees), Vec3(get<0>(axis), get<1>(axis), get<2>(axis)) });
+    md->ep->modelAxis(name,axis,degrees);
+    auto pickName = md->modelNamesPicked.at(name);
+    modelAxis(pickName,axis,degrees);
 }
 
 void Picker::modelRotate(string name,vec3 axis,double degrees) throw (exception) {
-    Finder nv; nv.inName = name; md->picks->accept(nv);
-    if(nullptr == nv.outMt) throw exception("failed to rotate the model because the name not found!");
-    nv.outMt->setAttitude({ DegreesToRadians(degrees), Vec3(get<0>(axis), get<1>(axis), get<2>(axis)) });
+    md->ep->modelRotate(name,axis,degrees);
+    auto pickName = md->modelNamesPicked.at(name);
+    pickRotate(pickName,axis,degrees);
 }
 
-void Picker::clear() {
-    md->picks->removeChild(0,md->picks->getNumChildren());
-    md->modelNamesPicked.clear();
-}
-
-void Picker::modelRemove(string name) throw(exception) {
+void Picker::pickRemove(string name) throw(exception) {
     for(int i=0;i < md->picks->getNumChildren();i++) {
         if(name == md->picks->getChild(i)->getName()) {
             md->picks->removeChild(i);
             break;
         }
     }
+}
+
+void Picker::pickTrans(string pickName,vec3 pos) throw(exception) {
+    Finder nv; nv.inName = pickName; md->picks->accept(nv);
+    if(nullptr == nv.outMt) throw exception("failed to transform the model because the name not found`!");
+    nv.outMt->setPosition({ get<0>(pos), get<1>(pos), get<2>(pos)} );
+}
+
+void Picker::pickScale(string pickName,vec3 ratio) throw(exception) {}
+
+void Picker::pickAxis(string pickName,vec3 axis,double degrees) throw (exception) {
+    Finder nv; nv.inName = pickName; md->picks->accept(nv);
+    if(nullptr == nv.outMt) throw exception("failed to rotate the model because the name not found!");
+    nv.outMt = dynamic_cast<PositionAttitudeTransform*>(nv.outMt->getChild(0));
+    nv.outMt->setAttitude({ DegreesToRadians(degrees), Vec3(get<0>(axis), get<1>(axis), get<2>(axis)) });
+}
+
+void Picker::pickRotate(string pickName,vec3 axis,double degrees) throw (exception) {
+    Finder nv; nv.inName = pickName; md->picks->accept(nv);
+    if(nullptr == nv.outMt) throw exception("failed to rotate the model because the name not found!");
+    nv.outMt->setAttitude({ DegreesToRadians(degrees), Vec3(get<0>(axis), get<1>(axis), get<2>(axis)) });
+}
+
+
+void Picker::clear() {
+    md->picks->removeChild(0,md->picks->getNumChildren());
+    md->modelNamesPicked.clear();
 }
 
 void Picker::pickDraw(string name,vec3 pos, float r) {
