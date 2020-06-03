@@ -35,6 +35,7 @@ SOURCES += \
     plugins/recorder.cpp \
     plugins/shadow.cpp \
     plugins/skybox.cpp \
+    plugins/stretcher.cpp \
     threewidget.cpp
 
 HEADERS += \
@@ -51,6 +52,7 @@ HEADERS += \
     plugins/recorder.h \
     plugins/shadow.h \
     plugins/skybox.h \
+    plugins/stretcher.h \
     three-widget_global.h \
     threewidget.h
 

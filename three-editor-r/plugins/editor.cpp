@@ -385,6 +385,7 @@ tuple<string,vec3,vec3> Editor::intersectWithVertex(vec2 xy, unsigned int mask) 
         }
     }
 
+    if(string::npos == name.find("\nEditor::")) name = "";
     return {name,{vertexPicked[0],vertexPicked[1],vertexPicked[2]},{0,0,0}};
 }
 

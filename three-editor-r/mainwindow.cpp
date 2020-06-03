@@ -53,6 +53,7 @@ MainWindow::~MainWindow()
 {
     pip.reset();
     plp.reset();
+    stp.reset();
 
     delete sp;
     delete rp;
@@ -318,6 +319,7 @@ void MainWindow::on_action_saveScene_triggered()
 
 void MainWindow::on_treeWidget_models_itemDoubleClicked(QTreeWidgetItem *item, int column)
 {
+    stp = nullptr;
     pip = nullptr; //关闭选择模式
     ui->doubleSpinBox_horizontalDegrees->setDisabled(true);
     ui->doubleSpinBox_xRatio->setDisabled(true);
@@ -340,6 +342,7 @@ void MainWindow::on_treeWidget_models_itemDoubleClicked(QTreeWidgetItem *item, i
 
 void MainWindow::on_action_cancel_triggered()
 {
+    stp = nullptr;
     plp = nullptr;
     pip = make_shared<ThreeQt::Picker>(ep);
     setModelEventHandler(pip);
@@ -480,16 +483,23 @@ void MainWindow::on_action_unlockPath_triggered()
 
 void MainWindow::on_action_group_triggered()
 {
-    set<string> names;
-    for(auto kv : pip->picks()) names.insert(kv.first);
-    ui->action_cancel->activate(QAction::Trigger);
-    ep->group(names,0b010);
+//    set<string> names;
+//    for(auto kv : pip->picks()) names.insert(kv.first);
+//    ui->action_cancel->activate(QAction::Trigger);
+//    ep->group(names,0b010);
 }
 
 void MainWindow::on_action_ungroup_triggered()
 {
-    set<string> names;
-    for(auto kv : pip->picks()) names.insert(kv.first);
-    ui->action_cancel->activate(QAction::Trigger);
-    for(auto name : names) ep->ungroup(name);
+//    set<string> names;
+//    for(auto kv : pip->picks()) names.insert(kv.first);
+//    ui->action_cancel->activate(QAction::Trigger);
+//    for(auto name : names) ep->ungroup(name);
+}
+
+void MainWindow::on_action_stretch_triggered()
+{
+    pip = nullptr;
+    plp = nullptr;
+    stp = make_shared<ThreeQt::Stretcher>(ep);
 }

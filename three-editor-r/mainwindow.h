@@ -8,6 +8,7 @@
 #include "plugins/observer.h"
 #include "plugins/picker.h"
 #include "plugins/placer.h"
+#include "plugins/stretcher.h"
 #include "plugins/controller.h"
 #include "plugins/recorder.h"
 #include "plugins/shadow.h"
@@ -37,6 +38,7 @@ public:
 
     shared_ptr<ThreeQt::Placer> plp;
     shared_ptr<ThreeQt::Picker> pip;
+    shared_ptr<ThreeQt::Stretcher> stp;
 
     QString filePath;
     string nameOfPosChanged;
@@ -72,6 +74,7 @@ private slots:
     void on_action_unlockPath_triggered();
     void on_action_group_triggered();
     void on_action_ungroup_triggered();
+    void on_action_stretch_triggered();
 
 private:
     Ui::MainWindow *ui;

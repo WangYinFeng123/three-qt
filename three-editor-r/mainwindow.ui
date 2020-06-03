@@ -50,6 +50,7 @@
     <property name="title">
      <string>操作</string>
     </property>
+    <addaction name="action_stretch"/>
     <addaction name="action_cancel"/>
     <addaction name="separator"/>
     <addaction name="action_undo"/>
@@ -626,6 +627,9 @@
    <property name="shortcut">
     <string>Ctrl+G</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="action_ungroup">
    <property name="enabled">
@@ -636,6 +640,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+G</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+  </action>
+  <action name="action_stretch">
+   <property name="text">
+    <string>拉伸</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
    </property>
   </action>
  </widget>

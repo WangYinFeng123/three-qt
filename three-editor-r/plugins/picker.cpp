@@ -422,7 +422,6 @@ void Picker::pickRotate(string pickName,vec3 axis,double degrees) throw (excepti
     nv.outMt->setAttitude({ DegreesToRadians(degrees), Vec3(get<0>(axis), get<1>(axis), get<2>(axis)) });
 }
 
-
 void Picker::clear() {
     md->picks->removeChild(0,md->picks->getNumChildren());
     md->modelNamesPicked.clear();
