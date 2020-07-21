@@ -215,7 +215,7 @@ string Editor::modelAdd(string modelPath,unsigned int mask) throw(exception) {
 }
 
 void Editor::modelRemove(string name,bool precise) throw(exception) {
-    Finder nv; nv.precise=precise; nv.inName = name; md->scene->accept(nv);
+    Finder::outMtCached = nullptr; Finder nv; nv.precise=precise; nv.inName = name; md->scene->accept(nv);
     if(nullptr == nv.outMt) throw exception("failed to remove model because the name not found!");
     md->scene->removeChild(nv.outMt);
 }
@@ -317,9 +317,9 @@ vec3 Editor::modelTrans(string name) throw (exception) {
     return {pos[0],pos[1],pos[2]};
 }
 
-tuple<string,vec3,vec3> Editor::intersect(vec2 xy, unsigned int mask) {
+tuple<string,vec3,vec3,bool> Editor::intersect(vec2 xy, unsigned int mask) throw (exception) {
     LineSegmentIntersector::Intersections lis;
-    if(!md->tw->viewer->computeIntersections(get<0>(xy),get<1>(xy),lis,mask)) return {"",{0,0,0},{0,0,0}};
+    if(!md->tw->viewer->computeIntersections(get<0>(xy),get<1>(xy),lis,mask)) return {"",{0,0,0},{0,0,0},false};
 
     string name;
     Vec3 worldPoint,localPoint;
@@ -339,7 +339,8 @@ tuple<string,vec3,vec3> Editor::intersect(vec2 xy, unsigned int mask) {
     return {
         name,
         {worldPoint[0],worldPoint[1],worldPoint[2]},
-        {localPoint[0],localPoint[1],localPoint[2]}
+        {localPoint[0],localPoint[1],localPoint[2]},
+        true
     };
 }
 

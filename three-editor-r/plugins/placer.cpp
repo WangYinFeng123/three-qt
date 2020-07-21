@@ -9,7 +9,8 @@ namespace ThreeQt {
 struct Placer::Plugin {
     Editor* ep;
     Controller* cp;
-    string modelNamePlaced;
+    string modelPath,modelNamePlaced;
+    bool isCopy;
     function<void()> placedEventhandler;
 
     function<bool(vec2)> mouseOverHandler() {
@@ -29,9 +30,20 @@ struct Placer::Plugin {
             case Controller::Left:{
                 auto newModelName = ep->modelClone(modelNamePlaced);
                 ep->modelMask(newModelName,0b10);
-                ep->modelMask(modelNamePlaced,0);
+                //ep->modelMask(modelNamePlaced,0);
+                auto pos = ep->modelTrans(modelNamePlaced);
+                ep->modelRemove(modelNamePlaced);
                 placedEventhandler();
-                ep->modelMask(modelNamePlaced,0b100);
+                if(isCopy) {
+                    modelNamePlaced = ep->modelClone(modelPath);
+                    ep->modelMask(modelNamePlaced,0b100);
+                }
+                else {
+                    modelNamePlaced = ep->modelAdd(modelPath,0b100);
+                    ep->modelAxis(modelNamePlaced,{1,0,0},90);
+                }
+                ep->modelTrans(modelNamePlaced,pos);
+                //ep->modelMask(modelNamePlaced,0b100);
                 break;}
             }
 
@@ -45,6 +57,7 @@ Placer::Placer(Editor* ep)
     md = new Plugin;
     md->ep = ep;
     md->cp = new Controller(ep->owner());
+    md->isCopy = false;
 
     md->cp->setMouseOverEventHandler(md->mouseOverHandler());
     md->cp->setMouseClickEventHandler(md->mouseClickhandler());
@@ -52,9 +65,7 @@ Placer::Placer(Editor* ep)
 
 Placer::~Placer()
 {
-    try {
-        md->ep->modelRemove(md->modelNamePlaced);
-    } catch(...) {}
+    try { md->ep->modelRemove(md->modelNamePlaced); } catch(...) {}
 
     md->cp->setMouseOverEventHandler(function<bool(vec2)>());
     md->cp->setMouseClickEventHandler(function<bool(Controller::MouseButton,Controller::MouseEventType,vec2,vec2)>());
@@ -62,15 +73,15 @@ Placer::~Placer()
 }
 
 void Placer::modelPlaced(string modelPath) {
-    try {
-        md->ep->modelRemove(md->modelNamePlaced);
-    } catch (exception ex) {}
-
+    try { md->ep->modelRemove(md->modelNamePlaced); } catch (exception ex) {}
+    md->modelPath = modelPath;
     md->modelNamePlaced = md->ep->modelAdd(modelPath,0b100);
     md->ep->modelAxis(md->modelNamePlaced,{1,0,0},90);
 }
 
 void Placer::modelPlacedByName(string name) {
+    md->isCopy = true;
+    md->modelPath = name;
     md->modelNamePlaced = md->ep->modelClone(name);
     md->ep->modelMask(md->modelNamePlaced,0b100);
 }

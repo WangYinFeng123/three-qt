@@ -202,20 +202,23 @@ struct Picker::Plugin {
                             beginPosAbsorbed = end;
                         } else {
                             auto begin = ep->modelTrans(namePointed);
-                            auto end = get<1>(ep->intersect(xy,0b11));
-                            vec3 offset {get<0>(end) - get<0>(begin),get<1>(end) - get<1>(begin), get<2>(end) - get<2>(begin)};
+                            auto ts = ep->intersect(xy,0b11);
+                            auto end = get<1>(ts);
+                            if(get<3>(ts)) {
+                                vec3 offset {get<0>(end) - get<0>(begin),get<1>(end) - get<1>(begin), get<2>(end) - get<2>(begin)};
 
-                            for(auto kv : modelNamesPicked) {
-                                auto modelPos = ep->modelTrans(kv.first);
-                                modelPos = {
-                                    get<0>(modelPos) + get<0>(offset),
-                                    get<1>(modelPos) + get<1>(offset),
-                                    get<2>(modelPos) + get<2>(offset)
-                                };
+                                for(auto kv : modelNamesPicked) {
+                                    auto modelPos = ep->modelTrans(kv.first);
+                                    modelPos = {
+                                        get<0>(modelPos) + get<0>(offset),
+                                        get<1>(modelPos) + get<1>(offset),
+                                        get<2>(modelPos) + get<2>(offset)
+                                    };
 
-                                if(changedEventHandler) changedEventHandler(kv.first,modelPos);
-//                              ep->modelTrans(kv.first,modelPos);
-//                              pip->modelTrans(kv.second,modelPos);
+                                    if(changedEventHandler) changedEventHandler(kv.first,modelPos);
+    //                              ep->modelTrans(kv.first,modelPos);
+    //                              pip->modelTrans(kv.second,modelPos);
+                                }
                             }
                         }
                     }

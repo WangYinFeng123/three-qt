@@ -52,8 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     pip.reset();
-    plp.reset();
-    stp.reset();
+    plp.rset();
 
     delete sp;
     delete rp;
@@ -319,7 +318,6 @@ void MainWindow::on_action_saveScene_triggered()
 
 void MainWindow::on_treeWidget_models_itemDoubleClicked(QTreeWidgetItem *item, int column)
 {
-    stp = nullptr;
     pip = nullptr; //关闭选择模式
     ui->doubleSpinBox_horizontalDegrees->setDisabled(true);
     ui->doubleSpinBox_xRatio->setDisabled(true);
@@ -432,13 +430,15 @@ void MainWindow::on_doubleSpinBox_zPos_valueChanged(double z) {
 
 void MainWindow::on_action_remove_triggered() {
     if(!pip) return;
+
+    bool isRemove = !pip->picks().empty();
     for(auto kv : pip->picks()) {
         ep->modelRemove(kv.first);
     }
 
     pip->clear();
 
-    if(!pip->picks().empty()) rp->snapshot();
+    if(isRemove) rp->snapshot();
 }
 
 void MainWindow::on_action_copy_triggered() {

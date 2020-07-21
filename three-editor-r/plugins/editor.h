@@ -46,7 +46,7 @@ public:
     void modelRotate(string name,vec3 axis,double degrees) throw (exception);
     void modelTrans(string name,vec3 pos) throw (exception);
     vec3 modelTrans(string name) throw (exception);
-    tuple<string,vec3,vec3> intersect(vec2 xy, unsigned int mask = 0xffffffff);
+    tuple<string,vec3,vec3,bool> intersect(vec2 xy, unsigned int mask = 0xffffffff);
     tuple<string,vec3,vec3> intersectWithVertex(vec2 xy, unsigned int mask);
     set<string> planeIntersect(vec2 lt,vec2 rd,unsigned int mask = 0xffffffff);
     pair<vec3,float> modelBound(string name);

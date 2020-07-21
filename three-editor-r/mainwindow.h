@@ -38,7 +38,6 @@ public:
 
     shared_ptr<ThreeQt::Placer> plp;
     shared_ptr<ThreeQt::Picker> pip;
-    shared_ptr<ThreeQt::Stretcher> stp;
 
     QString filePath;
     string nameOfPosChanged;
